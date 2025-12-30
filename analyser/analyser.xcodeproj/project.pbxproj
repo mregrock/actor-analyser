@@ -1,0 +1,788 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 46;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		34436CFE1F642A66004DD16E /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 34436CFD1F642A66004DD16E /* Assets.xcassets */; };
+		34436D0F1F6431CD004DD16E /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 34436D0E1F6431CD004DD16E /* Cocoa.framework */; settings = {ATTRIBUTES = (Required, ); }; };
+		34436D111F6431D3004DD16E /* OpenGL.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 34436D101F6431D3004DD16E /* OpenGL.framework */; settings = {ATTRIBUTES = (Required, ); }; };
+		346399371F7C93AB007E37F2 /* AudioToolbox.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 346399361F7C93AB007E37F2 /* AudioToolbox.framework */; };
+		346FB0DC201EA50000CAD8E5 /* log.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 346FB0DB201EA50000CAD8E5 /* log.cpp */; };
+		34A37FDC1F68AD73005ACF7B /* arctic_platform_windows.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 34A37FB41F68AD73005ACF7B /* arctic_platform_windows.cpp */; };
+		34A37FDD1F68AD73005ACF7B /* easy.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 34A37FB61F68AD73005ACF7B /* easy.cpp */; };
+		34A37FDE1F68AD73005ACF7B /* arctic_platform_macosx.mm in Sources */ = {isa = PBXBuildFile; fileRef = 34A37FB71F68AD73005ACF7B /* arctic_platform_macosx.mm */; };
+		34A37FDF1F68AD73005ACF7B /* easy_sprite.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 34A37FB81F68AD73005ACF7B /* easy_sprite.cpp */; };
+		34A37FE01F68AD73005ACF7B /* easy_sprite_instance.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 34A37FBD1F68AD73005ACF7B /* easy_sprite_instance.cpp */; };
+		34A37FE11F68AD73005ACF7B /* engine.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 34A37FBE1F68AD73005ACF7B /* engine.cpp */; };
+		34A37FE21F68AD73005ACF7B /* easy_sound_instance.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 34A37FBF1F68AD73005ACF7B /* easy_sound_instance.cpp */; };
+		34A37FE31F68AD73005ACF7B /* easy_sound.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 34A37FC11F68AD73005ACF7B /* easy_sound.cpp */; };
+		34A37FE51F68AD73005ACF7B /* arctic_input.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 34A37FD21F68AD73005ACF7B /* arctic_input.cpp */; };
+		34A37FE61F68AD73005ACF7B /* arctic_math.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 34A37FD81F68AD73005ACF7B /* arctic_math.cpp */; };
+		34AA9D3A25F560F50017F271 /* GameController.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 34AA9D3925F560F50017F271 /* GameController.framework */; };
+		34C1595A200199EF0029160F /* font.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 34C15959200199EF0029160F /* font.cpp */; };
+		34C1597B20019B5C0029160F /* data in Resources */ = {isa = PBXBuildFile; fileRef = 34C1597920019B5C0029160F /* data */; };
+		34C1597C20019B5C0029160F /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 34C1597A20019B5C0029160F /* main.cpp */; };
+		6769968E97284BD5423286E7 /* skeleton.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F279EE44D1F99F0A22399813 /* skeleton.cpp */; };
+		64D5193C8D08980DC4386420 /* mesh_ply.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8D2B6C6BB16713DEF8A3534D /* mesh_ply.cpp */; };
+		DED8BE35A7F2E25DD9BE6D35 /* mesh_gen_prim_simple.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E9C832A442D107609C0B6F15 /* mesh_gen_prim_simple.cpp */; };
+		43D6E8A4289424017C28A75F /* gl_buffer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = FDFECC2B3F96873865B04B5B /* gl_buffer.cpp */; };
+		44F8322B5EB5DE3A4742D961 /* dual_complex.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4207CC65B5B2350DB41B1BEF /* dual_complex.cpp */; };
+		56DA0366A145E27C28791732 /* mesh.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 720799D3A21B6FB82B6BA776 /* mesh.cpp */; };
+		071DF9FCAC1FC817F04F28E1 /* miniz.c in Sources */ = {isa = PBXBuildFile; fileRef = E377412B51C3E094946A6DC1 /* miniz.c */; };
+		BC4F5115B781C8559A16EFCA /* gl_program.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F9CE70897BDCF27C5579C813 /* gl_program.cpp */; };
+		9AC4879E555F3968AE768A0E /* bitstream.cpp in Sources */ = {isa = PBXBuildFile; fileRef = AC189061AEC8D148381388A0 /* bitstream.cpp */; };
+		DFC79B6157313820C0B92384 /* easy_hw_sprite.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C7CBF6DDB72673F89CA64FDF /* easy_hw_sprite.cpp */; };
+		38869C0CB23F73068577FA83 /* csv.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 64E2EA5036E0DBE753B503BD /* csv.cpp */; };
+		657A044BA8C2BC904C5CF818 /* mesh_intersect.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2B47BCC397F5626FA77DB95E /* mesh_intersect.cpp */; };
+		E89869C45926FB5EFB08C1A0 /* mesh_gen_mod_simple.cpp in Sources */ = {isa = PBXBuildFile; fileRef = BFB7B5A222633C9EB8377AC0 /* mesh_gen_mod_simple.cpp */; };
+		39E832CE5E78C2BA182EAE5D /* gl_framebuffer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9606EE9421B7968A98882E01 /* gl_framebuffer.cpp */; };
+		454ED24B19C5229B31113CC2 /* arctic_platform_windows_tcpip.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9391584CEDEE504142120080 /* arctic_platform_windows_tcpip.cpp */; };
+		F8DA211E8569BD9931FA8E22 /* wave_function_collapse.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E18EEE3D7ACFA60E599FF333 /* wave_function_collapse.cpp */; };
+		6A18C0F7F8A739A561E01045 /* arctic_platform_pi_tcpip.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E25D0D8109BEF565DC814EE5 /* arctic_platform_pi_tcpip.cpp */; };
+		66C19E262A6FFC12423D6E7C /* mesh_gen_adjacency.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C7EE1C9E177EF5A2A7A348B3 /* mesh_gen_adjacency.cpp */; };
+		E58543D311BEE5008033B472 /* arctic_platform_pi_byteorder.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 448B5FBE18CDE3F3113E8781 /* arctic_platform_pi_byteorder.cpp */; };
+		4EE00C2752F2A4AD6DCDF3D5 /* arctic_platform_pi_input.cpp in Sources */ = {isa = PBXBuildFile; fileRef = F784D90E0D55773D87C0EF9C /* arctic_platform_pi_input.cpp */; };
+		60FAD56FB6EF38AFBA3069C8 /* arctic_mixer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 29024A5EF32739615952E5C6 /* arctic_mixer.cpp */; };
+		69CFA3E5965A8A4D0629B3E2 /* mtq_spmc_array.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 3EAC3C644628DA0767A56988 /* mtq_spmc_array.cpp */; };
+		0B46BBDDA6BD3E0021EDD8CD /* easy_hw_sprite_instance.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8B3E6F90E8BE08C9CB3740F9 /* easy_hw_sprite_instance.cpp */; };
+		1297E8F995D1CA89087DCF5A /* data_reader.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7880B7242878B9F41187B8E0 /* data_reader.cpp */; };
+		0DCBECB99F08608937DDCBED /* arctic_platform_pi_es_egl.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E88E4A60938BB720A5AA22BA /* arctic_platform_pi_es_egl.cpp */; };
+		1EE346995AFC595996219B0C /* transform3f.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 51F37ACE8CAEE8A6B49D1D9B /* transform3f.cpp */; };
+		84166CFDC2D4F596F3499804 /* mtq_fixed_block_queue.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 8C6ED42BE35B5C64054A4B2E /* mtq_fixed_block_queue.cpp */; };
+		899FC91B9B01E1A09E346A0D /* arctic_platform_pi_fatal.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9E7173F8DC38938161362D83 /* arctic_platform_pi_fatal.cpp */; };
+		AE84056BFBDC6C842CBA3FE5 /* arctic_platform_web.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 520A94765878FB4BB7307544 /* arctic_platform_web.cpp */; };
+		89697AEE270EDAFD0345525A /* gui.cpp in Sources */ = {isa = PBXBuildFile; fileRef = CE892E8515D713FBB7960EE8 /* gui.cpp */; };
+		CED5F0A01AFDF1782CABDA88 /* arctic_sound.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 06EFB3B6B75FE335F8AA0082 /* arctic_sound.cpp */; };
+		EDF3F6F44E12DFE6801603B5 /* arctic_platform_macosx_sound.mm in Sources */ = {isa = PBXBuildFile; fileRef = AB5CFB603FB478863A5A3821 /* arctic_platform_macosx_sound.mm */; };
+		5AF1CD6121410F915CCB9826 /* pugixml.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2D49AF3090BCE26B0ED69A0C /* pugixml.cpp */; };
+		A240753AA429AAF2E2083626 /* mesh_gen_face_ops.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 141BE111AD23DF22AABEDBB1 /* mesh_gen_face_ops.cpp */; };
+		D9735F01774EDA2D2AABB69E /* arctic_platform_web_sound.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D0042C450CB7CD51BF915FE4 /* arctic_platform_web_sound.cpp */; };
+		08B746CF395DCAD0F5B2BD8E /* quaternion.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 0BB1DD3025D216019D8BF575 /* quaternion.cpp */; };
+		48517F449E0BA05275146B90 /* arctic_platform_pi_filesystem.cpp in Sources */ = {isa = PBXBuildFile; fileRef = D48C7FF6D97DC48B3D64B8CC /* arctic_platform_pi_filesystem.cpp */; };
+		C9E44F688624537D8B4A27AF /* arctic_platform_windows_sound.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 681BA6346DDA9BD5DA53050E /* arctic_platform_windows_sound.cpp */; };
+		A456A962E147832BE9EBCEB4 /* arctic_platform_pi_opengl_glx.cpp in Sources */ = {isa = PBXBuildFile; fileRef = EBC28A5DF6242C87523B68FF /* arctic_platform_pi_opengl_glx.cpp */; };
+		C722B76F8D16512CE7B9C751 /* gl_texture2d.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C5BCDD0824E64D629201090E /* gl_texture2d.cpp */; };
+		D5EFD35CD938940F11C224FF /* mesh_gen_ite_simple.cpp in Sources */ = {isa = PBXBuildFile; fileRef = C6EF68EFAAD427515FF2AD64 /* mesh_gen_ite_simple.cpp */; };
+		F1B85397E967935C6FCFD9DF /* mesh_obj.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 9DA1AFE1C3B5F8C44956E6DF /* mesh_obj.cpp */; };
+		2DA404F000208C6A715999E3 /* data_writer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 2B909FD3D1736DD783731A19 /* data_writer.cpp */; };
+		8C508513EB512AE273EC055D /* sound_handle.cpp in Sources */ = {isa = PBXBuildFile; fileRef = A2FF34B85725E6BA9C03B2C9 /* sound_handle.cpp */; };
+		78293AF45CD18CFD3238D3D4 /* ofbx.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 910209E622A9DADEDF9F320F /* ofbx.cpp */; };
+		4DFB2F27040BE437D3B5703A /* arctic_platform_pi_sound.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7DE9FF36589C66C6118F6672 /* arctic_platform_pi_sound.cpp */; };
+		44C2DC087D6C334508B2E461 /* mesh_gen_mod_complex.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 0F0D04718D2ECBADEFAA163E /* mesh_gen_mod_complex.cpp */; };
+		B48F369A7E60CCAF05217681 /* unicode.cpp in Sources */ = {isa = PBXBuildFile; fileRef = B4A9A63BB6906E037B66E4A0 /* unicode.cpp */; };
+		10E5D8B42F8F6E86F81DC5F6 /* gl_state.cpp in Sources */ = {isa = PBXBuildFile; fileRef = DEF4F61505075B72E05ACD8F /* gl_state.cpp */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		34436CF11F642A66004DD16E /* analyser.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = analyser.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		34436CFD1F642A66004DD16E /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Assets.xcassets; path = analyser/Assets.xcassets; sourceTree = "<group>"; };
+		34436D021F642A66004DD16E /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; name = Info.plist; path = analyser/Info.plist; sourceTree = "<group>"; };
+		34436D0E1F6431CD004DD16E /* Cocoa.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Cocoa.framework; path = System/Library/Frameworks/Cocoa.framework; sourceTree = SDKROOT; };
+		34436D101F6431D3004DD16E /* OpenGL.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = OpenGL.framework; path = System/Library/Frameworks/OpenGL.framework; sourceTree = SDKROOT; };
+		346399361F7C93AB007E37F2 /* AudioToolbox.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AudioToolbox.framework; path = System/Library/Frameworks/AudioToolbox.framework; sourceTree = SDKROOT; };
+		346FB0DA201EA50000CAD8E5 /* log.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = log.h; path = ../arctic/engine/log.h; sourceTree = SOURCE_ROOT; };
+		346FB0DB201EA50000CAD8E5 /* log.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = log.cpp; path = ../arctic/engine/log.cpp; sourceTree = SOURCE_ROOT; };
+		34A37FB31F68AD73005ACF7B /* stb_vorbis.inc */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.h; fileEncoding = 4; name = stb_vorbis.inc; path = ../arctic/engine/stb_vorbis.inc; sourceTree = SOURCE_ROOT; };
+		34A37FB41F68AD73005ACF7B /* arctic_platform_windows.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = arctic_platform_windows.cpp; path = ../arctic/engine/arctic_platform_windows.cpp; sourceTree = SOURCE_ROOT; };
+		34A37FB51F68AD73005ACF7B /* mat44f.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = mat44f.h; path = ../arctic/engine/mat44f.h; sourceTree = SOURCE_ROOT; };
+		34A37FB61F68AD73005ACF7B /* easy.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = easy.cpp; path = ../arctic/engine/easy.cpp; sourceTree = SOURCE_ROOT; };
+		34A37FB71F68AD73005ACF7B /* arctic_platform_macosx.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = arctic_platform_macosx.mm; path = ../arctic/engine/arctic_platform_macosx.mm; sourceTree = SOURCE_ROOT; };
+		34A37FB81F68AD73005ACF7B /* easy_sprite.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = easy_sprite.cpp; path = ../arctic/engine/easy_sprite.cpp; sourceTree = SOURCE_ROOT; };
+		34A37FB91F68AD73005ACF7B /* vec3f.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = vec3f.h; path = ../arctic/engine/vec3f.h; sourceTree = SOURCE_ROOT; };
+		34A37FBA1F68AD73005ACF7B /* frustum3f.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = frustum3f.h; path = ../arctic/engine/frustum3f.h; sourceTree = SOURCE_ROOT; };
+		34A37FBB1F68AD73005ACF7B /* vec4f.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = vec4f.h; path = ../arctic/engine/vec4f.h; sourceTree = SOURCE_ROOT; };
+		34A37FBC1F68AD73005ACF7B /* bound3f.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = bound3f.h; path = ../arctic/engine/bound3f.h; sourceTree = SOURCE_ROOT; };
+		34A37FBD1F68AD73005ACF7B /* easy_sprite_instance.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = easy_sprite_instance.cpp; path = ../arctic/engine/easy_sprite_instance.cpp; sourceTree = SOURCE_ROOT; };
+		34A37FBE1F68AD73005ACF7B /* engine.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = engine.cpp; path = ../arctic/engine/engine.cpp; sourceTree = SOURCE_ROOT; };
+		34A37FBF1F68AD73005ACF7B /* easy_sound_instance.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = easy_sound_instance.cpp; path = ../arctic/engine/easy_sound_instance.cpp; sourceTree = SOURCE_ROOT; };
+		34A37FC01F68AD73005ACF7B /* mat33f.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = mat33f.h; path = ../arctic/engine/mat33f.h; sourceTree = SOURCE_ROOT; };
+		34A37FC11F68AD73005ACF7B /* easy_sound.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = easy_sound.cpp; path = ../arctic/engine/easy_sound.cpp; sourceTree = SOURCE_ROOT; };
+		34A37FC21F68AD73005ACF7B /* vec4si32.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = vec4si32.h; path = ../arctic/engine/vec4si32.h; sourceTree = SOURCE_ROOT; };
+		34A37FC31F68AD73005ACF7B /* vec2f.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = vec2f.h; path = ../arctic/engine/vec2f.h; sourceTree = SOURCE_ROOT; };
+		34A37FC41F68AD73005ACF7B /* vec3si32.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = vec3si32.h; path = ../arctic/engine/vec3si32.h; sourceTree = SOURCE_ROOT; };
+		34A37FC51F68AD73005ACF7B /* arctic_input.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = arctic_input.h; path = ../arctic/engine/arctic_input.h; sourceTree = SOURCE_ROOT; };
+		34A37FC61F68AD73005ACF7B /* vec2si32.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = vec2si32.h; path = ../arctic/engine/vec2si32.h; sourceTree = SOURCE_ROOT; };
+		34A37FC71F68AD73005ACF7B /* easy_sprite.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = easy_sprite.h; path = ../arctic/engine/easy_sprite.h; sourceTree = SOURCE_ROOT; };
+		34A37FC81F68AD73005ACF7B /* bound2f.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = bound2f.h; path = ../arctic/engine/bound2f.h; sourceTree = SOURCE_ROOT; };
+		34A37FC91F68AD73005ACF7B /* easy.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = easy.h; path = ../arctic/engine/easy.h; sourceTree = SOURCE_ROOT; };
+		34A37FCB1F68AD73005ACF7B /* rgba.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = rgba.h; path = ../arctic/engine/rgba.h; sourceTree = SOURCE_ROOT; };
+		34A37FCC1F68AD73005ACF7B /* rgb.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = rgb.h; path = ../arctic/engine/rgb.h; sourceTree = SOURCE_ROOT; };
+		34A37FCD1F68AD73005ACF7B /* engine.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = engine.h; path = ../arctic/engine/engine.h; sourceTree = SOURCE_ROOT; };
+		34A37FCE1F68AD73005ACF7B /* easy_sound.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = easy_sound.h; path = ../arctic/engine/easy_sound.h; sourceTree = SOURCE_ROOT; };
+		34A37FCF1F68AD73005ACF7B /* mat22f.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = mat22f.h; path = ../arctic/engine/mat22f.h; sourceTree = SOURCE_ROOT; };
+		34A37FD01F68AD73005ACF7B /* easy_sound_instance.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = easy_sound_instance.h; path = ../arctic/engine/easy_sound_instance.h; sourceTree = SOURCE_ROOT; };
+		34A37FD11F68AD73005ACF7B /* arctic_platform.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = arctic_platform.h; path = ../arctic/engine/arctic_platform.h; sourceTree = SOURCE_ROOT; };
+		34A37FD21F68AD73005ACF7B /* arctic_input.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = arctic_input.cpp; path = ../arctic/engine/arctic_input.cpp; sourceTree = SOURCE_ROOT; };
+		34A37FD31F68AD73005ACF7B /* easy_sprite_instance.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = easy_sprite_instance.h; path = ../arctic/engine/easy_sprite_instance.h; sourceTree = SOURCE_ROOT; };
+		34A37FD41F68AD73005ACF7B /* arctic_math.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = arctic_math.h; path = ../arctic/engine/arctic_math.h; sourceTree = SOURCE_ROOT; };
+		34A37FD61F68AD73005ACF7B /* scalar_math.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = scalar_math.h; path = ../arctic/engine/scalar_math.h; sourceTree = SOURCE_ROOT; };
+		34A37FD71F68AD73005ACF7B /* opengl.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = opengl.h; path = ../arctic/engine/opengl.h; sourceTree = SOURCE_ROOT; };
+		34A37FD81F68AD73005ACF7B /* arctic_math.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = arctic_math.cpp; path = ../arctic/engine/arctic_math.cpp; sourceTree = SOURCE_ROOT; };
+		34A37FD91F68AD73005ACF7B /* arctic_types.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = arctic_types.h; path = ../arctic/engine/arctic_types.h; sourceTree = SOURCE_ROOT; };
+		34A37FDA1F68AD73005ACF7B /* arctic_platform_def.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = arctic_platform_def.h; path = ../arctic/engine/arctic_platform_def.h; sourceTree = SOURCE_ROOT; };
+		34AA9D3925F560F50017F271 /* GameController.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = GameController.framework; path = System/Library/Frameworks/GameController.framework; sourceTree = SDKROOT; };
+		34C15959200199EF0029160F /* font.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = font.cpp; path = ../arctic/engine/font.cpp; sourceTree = SOURCE_ROOT; };
+		34C1597920019B5C0029160F /* data */ = {isa = PBXFileReference; lastKnownFileType = folder; path = data; sourceTree = SOURCE_ROOT; };
+		34C1597A20019B5C0029160F /* main.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = SOURCE_ROOT; };
+		34C5F3111FD4E22300A03FA2 /* font.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = font.h; path = ../arctic/engine/font.h; sourceTree = SOURCE_ROOT; };
+		E6907697F757A42887C5522A /* mesh_gen_face_ops.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = mesh_gen_face_ops.h; path = ../arctic/engine/mesh_gen_face_ops.h; sourceTree = SOURCE_ROOT; };
+		600F035BDA5EB844DA1223D3 /* csv.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = csv.h; path = ../arctic/engine/csv.h; sourceTree = SOURCE_ROOT; };
+		F279EE44D1F99F0A22399813 /* skeleton.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = skeleton.cpp; path = ../arctic/engine/skeleton.cpp; sourceTree = SOURCE_ROOT; };
+		1D531E5C290B808297A30780 /* dual_complex.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = dual_complex.h; path = ../arctic/engine/dual_complex.h; sourceTree = SOURCE_ROOT; };
+		90BCC2F841B3E4DC981B76A7 /* easy_input.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = easy_input.h; path = ../arctic/engine/easy_input.h; sourceTree = SOURCE_ROOT; };
+		8D2B6C6BB16713DEF8A3534D /* mesh_ply.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = mesh_ply.cpp; path = ../arctic/engine/mesh_ply.cpp; sourceTree = SOURCE_ROOT; };
+		F854C1775FAD39752BD49E37 /* easy_util.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = easy_util.h; path = ../arctic/engine/easy_util.h; sourceTree = SOURCE_ROOT; };
+		3744C954E6ACF44B8AC5D164 /* optionparser.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = optionparser.h; path = ../arctic/engine/optionparser.h; sourceTree = SOURCE_ROOT; };
+		95515688A4A6FDEDCA99CF11 /* mesh_gen_ite_simple.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = mesh_gen_ite_simple.h; path = ../arctic/engine/mesh_gen_ite_simple.h; sourceTree = SOURCE_ROOT; };
+		1CC283FC14494CB20DD7D596 /* mesh_ply.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = mesh_ply.h; path = ../arctic/engine/mesh_ply.h; sourceTree = SOURCE_ROOT; };
+		E9C832A442D107609C0B6F15 /* mesh_gen_prim_simple.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = mesh_gen_prim_simple.cpp; path = ../arctic/engine/mesh_gen_prim_simple.cpp; sourceTree = SOURCE_ROOT; };
+		FDFECC2B3F96873865B04B5B /* gl_buffer.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = gl_buffer.cpp; path = ../arctic/engine/gl_buffer.cpp; sourceTree = SOURCE_ROOT; };
+		2CE73DD20525D1343F67D060 /* mesh_gen_mod_complex.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = mesh_gen_mod_complex.h; path = ../arctic/engine/mesh_gen_mod_complex.h; sourceTree = SOURCE_ROOT; };
+		4207CC65B5B2350DB41B1BEF /* dual_complex.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = dual_complex.cpp; path = ../arctic/engine/dual_complex.cpp; sourceTree = SOURCE_ROOT; };
+		84E34341931833B85C648E9E /* wave_function_collapse.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = wave_function_collapse.h; path = ../arctic/engine/wave_function_collapse.h; sourceTree = SOURCE_ROOT; };
+		720799D3A21B6FB82B6BA776 /* mesh.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = mesh.cpp; path = ../arctic/engine/mesh.cpp; sourceTree = SOURCE_ROOT; };
+		75BF580870BD74D249C18884 /* data_reader.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = data_reader.h; path = ../arctic/engine/data_reader.h; sourceTree = SOURCE_ROOT; };
+		76CBC797AE9B8AB3636FBEBD /* easing.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = easing.h; path = ../arctic/engine/easing.h; sourceTree = SOURCE_ROOT; };
+		E377412B51C3E094946A6DC1 /* miniz.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = miniz.c; path = ../arctic/engine/miniz.c; sourceTree = SOURCE_ROOT; };
+		9A5799581CAE2C8245AEE387 /* arctic_platform_fatal.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = arctic_platform_fatal.h; path = ../arctic/engine/arctic_platform_fatal.h; sourceTree = SOURCE_ROOT; };
+		F9CE70897BDCF27C5579C813 /* gl_program.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = gl_program.cpp; path = ../arctic/engine/gl_program.cpp; sourceTree = SOURCE_ROOT; };
+		AC189061AEC8D148381388A0 /* bitstream.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = bitstream.cpp; path = ../arctic/engine/bitstream.cpp; sourceTree = SOURCE_ROOT; };
+		C7CBF6DDB72673F89CA64FDF /* easy_hw_sprite.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = easy_hw_sprite.cpp; path = ../arctic/engine/easy_hw_sprite.cpp; sourceTree = SOURCE_ROOT; };
+		305F94C7607D22AD81F06BF2 /* mtq_fixed_block_queue.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = mtq_fixed_block_queue.h; path = ../arctic/engine/mtq_fixed_block_queue.h; sourceTree = SOURCE_ROOT; };
+		64E2EA5036E0DBE753B503BD /* csv.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = csv.cpp; path = ../arctic/engine/csv.cpp; sourceTree = SOURCE_ROOT; };
+		59580F91175771FC6C68003C /* decorated_frame.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = decorated_frame.h; path = ../arctic/engine/decorated_frame.h; sourceTree = SOURCE_ROOT; };
+		2B47BCC397F5626FA77DB95E /* mesh_intersect.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = mesh_intersect.cpp; path = ../arctic/engine/mesh_intersect.cpp; sourceTree = SOURCE_ROOT; };
+		BFB7B5A222633C9EB8377AC0 /* mesh_gen_mod_simple.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = mesh_gen_mod_simple.cpp; path = ../arctic/engine/mesh_gen_mod_simple.cpp; sourceTree = SOURCE_ROOT; };
+		EEDA43E760309861823DF470 /* gl_texture2d.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = gl_texture2d.h; path = ../arctic/engine/gl_texture2d.h; sourceTree = SOURCE_ROOT; };
+		9606EE9421B7968A98882E01 /* gl_framebuffer.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = gl_framebuffer.cpp; path = ../arctic/engine/gl_framebuffer.cpp; sourceTree = SOURCE_ROOT; };
+		79FAAAD1153BABD3BBF11234 /* transform3f.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = transform3f.h; path = ../arctic/engine/transform3f.h; sourceTree = SOURCE_ROOT; };
+		E672F749A5422D79A7475931 /* test_main.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = test_main.h; path = ../arctic/engine/test_main.h; sourceTree = SOURCE_ROOT; };
+		9391584CEDEE504142120080 /* arctic_platform_windows_tcpip.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = arctic_platform_windows_tcpip.cpp; path = ../arctic/engine/arctic_platform_windows_tcpip.cpp; sourceTree = SOURCE_ROOT; };
+		812E1C0A5463C479E3A50106 /* mesh_gen.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = mesh_gen.h; path = ../arctic/engine/mesh_gen.h; sourceTree = SOURCE_ROOT; };
+		E18EEE3D7ACFA60E599FF333 /* wave_function_collapse.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = wave_function_collapse.cpp; path = ../arctic/engine/wave_function_collapse.cpp; sourceTree = SOURCE_ROOT; };
+		E25D0D8109BEF565DC814EE5 /* arctic_platform_pi_tcpip.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = arctic_platform_pi_tcpip.cpp; path = ../arctic/engine/arctic_platform_pi_tcpip.cpp; sourceTree = SOURCE_ROOT; };
+		C7EE1C9E177EF5A2A7A348B3 /* mesh_gen_adjacency.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = mesh_gen_adjacency.cpp; path = ../arctic/engine/mesh_gen_adjacency.cpp; sourceTree = SOURCE_ROOT; };
+		7BEC96ED7F4FF1497F2379E2 /* vec2d.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = vec2d.h; path = ../arctic/engine/vec2d.h; sourceTree = SOURCE_ROOT; };
+		8E25662571BECED8636BB90F /* test.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = test.h; path = ../arctic/engine/test.h; sourceTree = SOURCE_ROOT; };
+		F0039ADADC23341878ED4F83 /* mesh_gen_mod_simple.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = mesh_gen_mod_simple.h; path = ../arctic/engine/mesh_gen_mod_simple.h; sourceTree = SOURCE_ROOT; };
+		FABC76594F73A08DE761BAD2 /* mtq_mpsc_vinfarr.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = mtq_mpsc_vinfarr.h; path = ../arctic/engine/mtq_mpsc_vinfarr.h; sourceTree = SOURCE_ROOT; };
+		81D621C9BED24A976B300DEE /* quaternion.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = quaternion.h; path = ../arctic/engine/quaternion.h; sourceTree = SOURCE_ROOT; };
+		448B5FBE18CDE3F3113E8781 /* arctic_platform_pi_byteorder.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = arctic_platform_pi_byteorder.cpp; path = ../arctic/engine/arctic_platform_pi_byteorder.cpp; sourceTree = SOURCE_ROOT; };
+		3F4920C7BA2E37A3E428BFCB /* vec3d.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = vec3d.h; path = ../arctic/engine/vec3d.h; sourceTree = SOURCE_ROOT; };
+		F784D90E0D55773D87C0EF9C /* arctic_platform_pi_input.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = arctic_platform_pi_input.cpp; path = ../arctic/engine/arctic_platform_pi_input.cpp; sourceTree = SOURCE_ROOT; };
+		E17A5695F05D74DB2C0B670B /* gl_framebuffer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = gl_framebuffer.h; path = ../arctic/engine/gl_framebuffer.h; sourceTree = SOURCE_ROOT; };
+		79DDE83E0146EF26FE709159 /* mesh_obj.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = mesh_obj.h; path = ../arctic/engine/mesh_obj.h; sourceTree = SOURCE_ROOT; };
+		29024A5EF32739615952E5C6 /* arctic_mixer.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = arctic_mixer.cpp; path = ../arctic/engine/arctic_mixer.cpp; sourceTree = SOURCE_ROOT; };
+		3EAC3C644628DA0767A56988 /* mtq_spmc_array.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = mtq_spmc_array.cpp; path = ../arctic/engine/mtq_spmc_array.cpp; sourceTree = SOURCE_ROOT; };
+		F1B77F97FC342536044CDCBD /* mesh.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = mesh.h; path = ../arctic/engine/mesh.h; sourceTree = SOURCE_ROOT; };
+		CB0EE6E4F2988183230D2136 /* mesh_intersect.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = mesh_intersect.h; path = ../arctic/engine/mesh_intersect.h; sourceTree = SOURCE_ROOT; };
+		46BF0FD1A62BEEBD2AA51118 /* transform2f.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = transform2f.h; path = ../arctic/engine/transform2f.h; sourceTree = SOURCE_ROOT; };
+		C4C9223566142D93398EAE46 /* gl_program.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = gl_program.h; path = ../arctic/engine/gl_program.h; sourceTree = SOURCE_ROOT; };
+		8B3E6F90E8BE08C9CB3740F9 /* easy_hw_sprite_instance.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = easy_hw_sprite_instance.cpp; path = ../arctic/engine/easy_hw_sprite_instance.cpp; sourceTree = SOURCE_ROOT; };
+		9785063859A6E44527067FB1 /* easy_drawing.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = easy_drawing.h; path = ../arctic/engine/easy_drawing.h; sourceTree = SOURCE_ROOT; };
+		7880B7242878B9F41187B8E0 /* data_reader.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = data_reader.cpp; path = ../arctic/engine/data_reader.cpp; sourceTree = SOURCE_ROOT; };
+		1AEEE257C9DC3E8C71C60002 /* miniz.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = miniz.h; path = ../arctic/engine/miniz.h; sourceTree = SOURCE_ROOT; };
+		E88E4A60938BB720A5AA22BA /* arctic_platform_pi_es_egl.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = arctic_platform_pi_es_egl.cpp; path = ../arctic/engine/arctic_platform_pi_es_egl.cpp; sourceTree = SOURCE_ROOT; };
+		DF58B0B56C8457CCF76DA4D9 /* skeleton.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = skeleton.h; path = ../arctic/engine/skeleton.h; sourceTree = SOURCE_ROOT; };
+		51F37ACE8CAEE8A6B49D1D9B /* transform3f.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = transform3f.cpp; path = ../arctic/engine/transform3f.cpp; sourceTree = SOURCE_ROOT; };
+		B23BAB3C6E01DD591E6ED028 /* gui.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = gui.h; path = ../arctic/engine/gui.h; sourceTree = SOURCE_ROOT; };
+		CD5CF371C6ADE544048244D8 /* unicode.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = unicode.h; path = ../arctic/engine/unicode.h; sourceTree = SOURCE_ROOT; };
+		874B193D49C83BFD136E1BF0 /* mesh_gen_adjacency.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = mesh_gen_adjacency.h; path = ../arctic/engine/mesh_gen_adjacency.h; sourceTree = SOURCE_ROOT; };
+		C3AC49F83701A32DE67CCE3C /* arctic_mixer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = arctic_mixer.h; path = ../arctic/engine/arctic_mixer.h; sourceTree = SOURCE_ROOT; };
+		863A661F33AEE869BF8F3B54 /* mtq_mempool_allocator.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = mtq_mempool_allocator.h; path = ../arctic/engine/mtq_mempool_allocator.h; sourceTree = SOURCE_ROOT; };
+		8C6ED42BE35B5C64054A4B2E /* mtq_fixed_block_queue.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = mtq_fixed_block_queue.cpp; path = ../arctic/engine/mtq_fixed_block_queue.cpp; sourceTree = SOURCE_ROOT; };
+		54E6F43D11BF1C964DEF2673 /* mtq_base_common.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = mtq_base_common.h; path = ../arctic/engine/mtq_base_common.h; sourceTree = SOURCE_ROOT; };
+		1BCB33334CF405928469C0A6 /* glext.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = glext.h; path = ../arctic/engine/glext.h; sourceTree = SOURCE_ROOT; };
+		9E7173F8DC38938161362D83 /* arctic_platform_pi_fatal.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = arctic_platform_pi_fatal.cpp; path = ../arctic/engine/arctic_platform_pi_fatal.cpp; sourceTree = SOURCE_ROOT; };
+		520A94765878FB4BB7307544 /* arctic_platform_web.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = arctic_platform_web.cpp; path = ../arctic/engine/arctic_platform_web.cpp; sourceTree = SOURCE_ROOT; };
+		FDE506F53AC8517142B1C690 /* bitstream.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = bitstream.h; path = ../arctic/engine/bitstream.h; sourceTree = SOURCE_ROOT; };
+		CE892E8515D713FBB7960EE8 /* gui.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = gui.cpp; path = ../arctic/engine/gui.cpp; sourceTree = SOURCE_ROOT; };
+		26D5E44138052B88E3136CEC /* mtq_mpsc_tail_swap.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = mtq_mpsc_tail_swap.h; path = ../arctic/engine/mtq_mpsc_tail_swap.h; sourceTree = SOURCE_ROOT; };
+		514F6B71AE3C5EA4CDEAD2DD /* pugixml.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = pugixml.h; path = ../arctic/engine/pugixml.h; sourceTree = SOURCE_ROOT; };
+		06EFB3B6B75FE335F8AA0082 /* arctic_sound.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = arctic_sound.cpp; path = ../arctic/engine/arctic_sound.cpp; sourceTree = SOURCE_ROOT; };
+		F68ACBAE9157C07DE257F3D4 /* mesh_gen_prim_simple.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = mesh_gen_prim_simple.h; path = ../arctic/engine/mesh_gen_prim_simple.h; sourceTree = SOURCE_ROOT; };
+		AB5CFB603FB478863A5A3821 /* arctic_platform_macosx_sound.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = arctic_platform_macosx_sound.mm; path = ../arctic/engine/arctic_platform_macosx_sound.mm; sourceTree = SOURCE_ROOT; };
+		C8FA7DE53B54703A1912A720 /* ofbx.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ofbx.h; path = ../arctic/engine/ofbx.h; sourceTree = SOURCE_ROOT; };
+		2D49AF3090BCE26B0ED69A0C /* pugixml.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = pugixml.cpp; path = ../arctic/engine/pugixml.cpp; sourceTree = SOURCE_ROOT; };
+		141BE111AD23DF22AABEDBB1 /* mesh_gen_face_ops.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = mesh_gen_face_ops.cpp; path = ../arctic/engine/mesh_gen_face_ops.cpp; sourceTree = SOURCE_ROOT; };
+		D0042C450CB7CD51BF915FE4 /* arctic_platform_web_sound.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = arctic_platform_web_sound.cpp; path = ../arctic/engine/arctic_platform_web_sound.cpp; sourceTree = SOURCE_ROOT; };
+		530B1267E8BC88807B49E171 /* node2f.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = node2f.h; path = ../arctic/engine/node2f.h; sourceTree = SOURCE_ROOT; };
+		0BB1DD3025D216019D8BF575 /* quaternion.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = quaternion.cpp; path = ../arctic/engine/quaternion.cpp; sourceTree = SOURCE_ROOT; };
+		09F56CB60BFE9AC3286E2F82 /* data_writer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = data_writer.h; path = ../arctic/engine/data_writer.h; sourceTree = SOURCE_ROOT; };
+		D48C7FF6D97DC48B3D64B8CC /* arctic_platform_pi_filesystem.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = arctic_platform_pi_filesystem.cpp; path = ../arctic/engine/arctic_platform_pi_filesystem.cpp; sourceTree = SOURCE_ROOT; };
+		207E9124D252B09FF9220326 /* easy_advanced.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = easy_advanced.h; path = ../arctic/engine/easy_advanced.h; sourceTree = SOURCE_ROOT; };
+		681BA6346DDA9BD5DA53050E /* arctic_platform_windows_sound.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = arctic_platform_windows_sound.cpp; path = ../arctic/engine/arctic_platform_windows_sound.cpp; sourceTree = SOURCE_ROOT; };
+		2DDDA01DB751F548379F8BB6 /* easy_hw_sprite_instance.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = easy_hw_sprite_instance.h; path = ../arctic/engine/easy_hw_sprite_instance.h; sourceTree = SOURCE_ROOT; };
+		EBC28A5DF6242C87523B68FF /* arctic_platform_pi_opengl_glx.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = arctic_platform_pi_opengl_glx.cpp; path = ../arctic/engine/arctic_platform_pi_opengl_glx.cpp; sourceTree = SOURCE_ROOT; };
+		B152654D75C7E531A88EE69F /* template_tune.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = template_tune.h; path = ../arctic/engine/template_tune.h; sourceTree = SOURCE_ROOT; };
+		11B8DDB52033DA78FBADF8A5 /* easy_files.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = easy_files.h; path = ../arctic/engine/easy_files.h; sourceTree = SOURCE_ROOT; };
+		C5BCDD0824E64D629201090E /* gl_texture2d.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = gl_texture2d.cpp; path = ../arctic/engine/gl_texture2d.cpp; sourceTree = SOURCE_ROOT; };
+		52BEB42C7BA0C18BED8C2EAF /* gl_buffer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = gl_buffer.h; path = ../arctic/engine/gl_buffer.h; sourceTree = SOURCE_ROOT; };
+		534FC7A8FA075DED229A6B51 /* sound_handle.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = sound_handle.h; path = ../arctic/engine/sound_handle.h; sourceTree = SOURCE_ROOT; };
+		DCC90C7982DD8AD67B5A181A /* array2.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = array2.h; path = ../arctic/engine/array2.h; sourceTree = SOURCE_ROOT; };
+		E266E72E32E28C5D99D2BFC2 /* mat22d.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = mat22d.h; path = ../arctic/engine/mat22d.h; sourceTree = SOURCE_ROOT; };
+		C6EF68EFAAD427515FF2AD64 /* mesh_gen_ite_simple.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = mesh_gen_ite_simple.cpp; path = ../arctic/engine/mesh_gen_ite_simple.cpp; sourceTree = SOURCE_ROOT; };
+		AC7B699E84DE46D596198FCA /* cpplint.cfg */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = cpplint.cfg; path = ../arctic/engine/cpplint.cfg; sourceTree = SOURCE_ROOT; };
+		9DA1AFE1C3B5F8C44956E6DF /* mesh_obj.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = mesh_obj.cpp; path = ../arctic/engine/mesh_obj.cpp; sourceTree = SOURCE_ROOT; };
+		2B909FD3D1736DD783731A19 /* data_writer.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = data_writer.cpp; path = ../arctic/engine/data_writer.cpp; sourceTree = SOURCE_ROOT; };
+		A2FF34B85725E6BA9C03B2C9 /* sound_handle.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = sound_handle.cpp; path = ../arctic/engine/sound_handle.cpp; sourceTree = SOURCE_ROOT; };
+		D510DB09CC7360898FFE4684 /* mtq_spmc_array.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = mtq_spmc_array.h; path = ../arctic/engine/mtq_spmc_array.h; sourceTree = SOURCE_ROOT; };
+		82B6200631907C34B377F8A8 /* glcorearb.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = glcorearb.h; path = ../arctic/engine/glcorearb.h; sourceTree = SOURCE_ROOT; };
+		910209E622A9DADEDF9F320F /* ofbx.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = ofbx.cpp; path = ../arctic/engine/ofbx.cpp; sourceTree = SOURCE_ROOT; };
+		7DE9FF36589C66C6118F6672 /* arctic_platform_pi_sound.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = arctic_platform_pi_sound.cpp; path = ../arctic/engine/arctic_platform_pi_sound.cpp; sourceTree = SOURCE_ROOT; };
+		31531B503B6079C360586DEF /* sound_task.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = sound_task.h; path = ../arctic/engine/sound_task.h; sourceTree = SOURCE_ROOT; };
+		0F0D04718D2ECBADEFAA163E /* mesh_gen_mod_complex.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = mesh_gen_mod_complex.cpp; path = ../arctic/engine/mesh_gen_mod_complex.cpp; sourceTree = SOURCE_ROOT; };
+		5EB15C11E62F643181EC89AC /* arctic_platform_tcpip.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = arctic_platform_tcpip.h; path = ../arctic/engine/arctic_platform_tcpip.h; sourceTree = SOURCE_ROOT; };
+		396FFEADDDC03AC750BBC865 /* gl_state.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = gl_state.h; path = ../arctic/engine/gl_state.h; sourceTree = SOURCE_ROOT; };
+		C0DA8B4D4A44711AB576A625 /* mtq_mpmc_befsbfsp_allocator.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = mtq_mpmc_befsbfsp_allocator.h; path = ../arctic/engine/mtq_mpmc_befsbfsp_allocator.h; sourceTree = SOURCE_ROOT; };
+		8842A15DBF3DA1F908507A7A /* easy_hw_sprite.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = easy_hw_sprite.h; path = ../arctic/engine/easy_hw_sprite.h; sourceTree = SOURCE_ROOT; };
+		B4A9A63BB6906E037B66E4A0 /* unicode.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = unicode.cpp; path = ../arctic/engine/unicode.cpp; sourceTree = SOURCE_ROOT; };
+		8DD30BD7432CE56E784CCDFD /* arctic_platform_byteorder.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = arctic_platform_byteorder.h; path = ../arctic/engine/arctic_platform_byteorder.h; sourceTree = SOURCE_ROOT; };
+		DEF4F61505075B72E05ACD8F /* gl_state.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = gl_state.cpp; path = ../arctic/engine/gl_state.cpp; sourceTree = SOURCE_ROOT; };
+		70351187409D74D2C69B31D8 /* arctic_platform_sound.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = arctic_platform_sound.h; path = ../arctic/engine/arctic_platform_sound.h; sourceTree = SOURCE_ROOT; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		34436CEE1F642A66004DD16E /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				346399371F7C93AB007E37F2 /* AudioToolbox.framework in Frameworks */,
+				34436D111F6431D3004DD16E /* OpenGL.framework in Frameworks */,
+				34AA9D3A25F560F50017F271 /* GameController.framework in Frameworks */,
+				34436D0F1F6431CD004DD16E /* Cocoa.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		34436CE81F642A66004DD16E = {
+			isa = PBXGroup;
+			children = (
+				34436CF31F642A66004DD16E /* analyser */,
+				34436CF21F642A66004DD16E /* Products */,
+				34436D0D1F6431CD004DD16E /* Frameworks */,
+			);
+			sourceTree = "<group>";
+		};
+		34436CF21F642A66004DD16E /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				34436CF11F642A66004DD16E /* analyser.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		34436CF31F642A66004DD16E /* analyser */ = {
+			isa = PBXGroup;
+			children = (
+				34C1597920019B5C0029160F /* data */,
+				34C1597A20019B5C0029160F /* main.cpp */,
+				34A37FB21F68AD4E005ACF7B /* engine */,
+				34436CFD1F642A66004DD16E /* Assets.xcassets */,
+				34436D021F642A66004DD16E /* Info.plist */,
+				34436CF71F642A66004DD16E /* Supporting Files */,
+			);
+			name = analyser;
+			path = ..;
+			sourceTree = "<group>";
+		};
+		34436CF71F642A66004DD16E /* Supporting Files */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = "Supporting Files";
+			sourceTree = "<group>";
+		};
+		34436D0D1F6431CD004DD16E /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				34AA9D3925F560F50017F271 /* GameController.framework */,
+				346399361F7C93AB007E37F2 /* AudioToolbox.framework */,
+				34436D101F6431D3004DD16E /* OpenGL.framework */,
+				34436D0E1F6431CD004DD16E /* Cocoa.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		34A37FB21F68AD4E005ACF7B /* engine */ = {
+			isa = PBXGroup;
+			children = (
+				346FB0DB201EA50000CAD8E5 /* log.cpp */,
+				346FB0DA201EA50000CAD8E5 /* log.h */,
+				34C15959200199EF0029160F /* font.cpp */,
+				34C5F3111FD4E22300A03FA2 /* font.h */,
+				34A37FD21F68AD73005ACF7B /* arctic_input.cpp */,
+				34A37FC51F68AD73005ACF7B /* arctic_input.h */,
+				34A37FD81F68AD73005ACF7B /* arctic_math.cpp */,
+				34A37FD41F68AD73005ACF7B /* arctic_math.h */,
+				34A37FDA1F68AD73005ACF7B /* arctic_platform_def.h */,
+				34A37FB71F68AD73005ACF7B /* arctic_platform_macosx.mm */,
+				34A37FB41F68AD73005ACF7B /* arctic_platform_windows.cpp */,
+				34A37FD11F68AD73005ACF7B /* arctic_platform.h */,
+				34A37FD91F68AD73005ACF7B /* arctic_types.h */,
+				34A37FC81F68AD73005ACF7B /* bound2f.h */,
+				34A37FBC1F68AD73005ACF7B /* bound3f.h */,
+				34A37FBF1F68AD73005ACF7B /* easy_sound_instance.cpp */,
+				34A37FD01F68AD73005ACF7B /* easy_sound_instance.h */,
+				34A37FC11F68AD73005ACF7B /* easy_sound.cpp */,
+				34A37FCE1F68AD73005ACF7B /* easy_sound.h */,
+				34A37FBD1F68AD73005ACF7B /* easy_sprite_instance.cpp */,
+				34A37FD31F68AD73005ACF7B /* easy_sprite_instance.h */,
+				34A37FB81F68AD73005ACF7B /* easy_sprite.cpp */,
+				34A37FC71F68AD73005ACF7B /* easy_sprite.h */,
+				34A37FB61F68AD73005ACF7B /* easy.cpp */,
+				34A37FC91F68AD73005ACF7B /* easy.h */,
+				34A37FBE1F68AD73005ACF7B /* engine.cpp */,
+				E6907697F757A42887C5522A /* mesh_gen_face_ops.h */,
+				600F035BDA5EB844DA1223D3 /* csv.h */,
+				F279EE44D1F99F0A22399813 /* skeleton.cpp */,
+				1D531E5C290B808297A30780 /* dual_complex.h */,
+				90BCC2F841B3E4DC981B76A7 /* easy_input.h */,
+				8D2B6C6BB16713DEF8A3534D /* mesh_ply.cpp */,
+				F854C1775FAD39752BD49E37 /* easy_util.h */,
+				3744C954E6ACF44B8AC5D164 /* optionparser.h */,
+				95515688A4A6FDEDCA99CF11 /* mesh_gen_ite_simple.h */,
+				1CC283FC14494CB20DD7D596 /* mesh_ply.h */,
+				E9C832A442D107609C0B6F15 /* mesh_gen_prim_simple.cpp */,
+				FDFECC2B3F96873865B04B5B /* gl_buffer.cpp */,
+				2CE73DD20525D1343F67D060 /* mesh_gen_mod_complex.h */,
+				4207CC65B5B2350DB41B1BEF /* dual_complex.cpp */,
+				84E34341931833B85C648E9E /* wave_function_collapse.h */,
+				720799D3A21B6FB82B6BA776 /* mesh.cpp */,
+				75BF580870BD74D249C18884 /* data_reader.h */,
+				76CBC797AE9B8AB3636FBEBD /* easing.h */,
+				E377412B51C3E094946A6DC1 /* miniz.c */,
+				9A5799581CAE2C8245AEE387 /* arctic_platform_fatal.h */,
+				F9CE70897BDCF27C5579C813 /* gl_program.cpp */,
+				AC189061AEC8D148381388A0 /* bitstream.cpp */,
+				C7CBF6DDB72673F89CA64FDF /* easy_hw_sprite.cpp */,
+				305F94C7607D22AD81F06BF2 /* mtq_fixed_block_queue.h */,
+				64E2EA5036E0DBE753B503BD /* csv.cpp */,
+				59580F91175771FC6C68003C /* decorated_frame.h */,
+				2B47BCC397F5626FA77DB95E /* mesh_intersect.cpp */,
+				BFB7B5A222633C9EB8377AC0 /* mesh_gen_mod_simple.cpp */,
+				EEDA43E760309861823DF470 /* gl_texture2d.h */,
+				9606EE9421B7968A98882E01 /* gl_framebuffer.cpp */,
+				79FAAAD1153BABD3BBF11234 /* transform3f.h */,
+				E672F749A5422D79A7475931 /* test_main.h */,
+				9391584CEDEE504142120080 /* arctic_platform_windows_tcpip.cpp */,
+				812E1C0A5463C479E3A50106 /* mesh_gen.h */,
+				E18EEE3D7ACFA60E599FF333 /* wave_function_collapse.cpp */,
+				E25D0D8109BEF565DC814EE5 /* arctic_platform_pi_tcpip.cpp */,
+				C7EE1C9E177EF5A2A7A348B3 /* mesh_gen_adjacency.cpp */,
+				7BEC96ED7F4FF1497F2379E2 /* vec2d.h */,
+				8E25662571BECED8636BB90F /* test.h */,
+				F0039ADADC23341878ED4F83 /* mesh_gen_mod_simple.h */,
+				FABC76594F73A08DE761BAD2 /* mtq_mpsc_vinfarr.h */,
+				81D621C9BED24A976B300DEE /* quaternion.h */,
+				448B5FBE18CDE3F3113E8781 /* arctic_platform_pi_byteorder.cpp */,
+				3F4920C7BA2E37A3E428BFCB /* vec3d.h */,
+				F784D90E0D55773D87C0EF9C /* arctic_platform_pi_input.cpp */,
+				E17A5695F05D74DB2C0B670B /* gl_framebuffer.h */,
+				79DDE83E0146EF26FE709159 /* mesh_obj.h */,
+				29024A5EF32739615952E5C6 /* arctic_mixer.cpp */,
+				3EAC3C644628DA0767A56988 /* mtq_spmc_array.cpp */,
+				F1B77F97FC342536044CDCBD /* mesh.h */,
+				CB0EE6E4F2988183230D2136 /* mesh_intersect.h */,
+				46BF0FD1A62BEEBD2AA51118 /* transform2f.h */,
+				C4C9223566142D93398EAE46 /* gl_program.h */,
+				8B3E6F90E8BE08C9CB3740F9 /* easy_hw_sprite_instance.cpp */,
+				9785063859A6E44527067FB1 /* easy_drawing.h */,
+				7880B7242878B9F41187B8E0 /* data_reader.cpp */,
+				1AEEE257C9DC3E8C71C60002 /* miniz.h */,
+				E88E4A60938BB720A5AA22BA /* arctic_platform_pi_es_egl.cpp */,
+				DF58B0B56C8457CCF76DA4D9 /* skeleton.h */,
+				51F37ACE8CAEE8A6B49D1D9B /* transform3f.cpp */,
+				B23BAB3C6E01DD591E6ED028 /* gui.h */,
+				CD5CF371C6ADE544048244D8 /* unicode.h */,
+				874B193D49C83BFD136E1BF0 /* mesh_gen_adjacency.h */,
+				C3AC49F83701A32DE67CCE3C /* arctic_mixer.h */,
+				863A661F33AEE869BF8F3B54 /* mtq_mempool_allocator.h */,
+				8C6ED42BE35B5C64054A4B2E /* mtq_fixed_block_queue.cpp */,
+				54E6F43D11BF1C964DEF2673 /* mtq_base_common.h */,
+				1BCB33334CF405928469C0A6 /* glext.h */,
+				9E7173F8DC38938161362D83 /* arctic_platform_pi_fatal.cpp */,
+				520A94765878FB4BB7307544 /* arctic_platform_web.cpp */,
+				FDE506F53AC8517142B1C690 /* bitstream.h */,
+				CE892E8515D713FBB7960EE8 /* gui.cpp */,
+				26D5E44138052B88E3136CEC /* mtq_mpsc_tail_swap.h */,
+				514F6B71AE3C5EA4CDEAD2DD /* pugixml.h */,
+				06EFB3B6B75FE335F8AA0082 /* arctic_sound.cpp */,
+				F68ACBAE9157C07DE257F3D4 /* mesh_gen_prim_simple.h */,
+				AB5CFB603FB478863A5A3821 /* arctic_platform_macosx_sound.mm */,
+				C8FA7DE53B54703A1912A720 /* ofbx.h */,
+				2D49AF3090BCE26B0ED69A0C /* pugixml.cpp */,
+				141BE111AD23DF22AABEDBB1 /* mesh_gen_face_ops.cpp */,
+				D0042C450CB7CD51BF915FE4 /* arctic_platform_web_sound.cpp */,
+				530B1267E8BC88807B49E171 /* node2f.h */,
+				0BB1DD3025D216019D8BF575 /* quaternion.cpp */,
+				09F56CB60BFE9AC3286E2F82 /* data_writer.h */,
+				D48C7FF6D97DC48B3D64B8CC /* arctic_platform_pi_filesystem.cpp */,
+				207E9124D252B09FF9220326 /* easy_advanced.h */,
+				681BA6346DDA9BD5DA53050E /* arctic_platform_windows_sound.cpp */,
+				2DDDA01DB751F548379F8BB6 /* easy_hw_sprite_instance.h */,
+				EBC28A5DF6242C87523B68FF /* arctic_platform_pi_opengl_glx.cpp */,
+				B152654D75C7E531A88EE69F /* template_tune.h */,
+				11B8DDB52033DA78FBADF8A5 /* easy_files.h */,
+				C5BCDD0824E64D629201090E /* gl_texture2d.cpp */,
+				52BEB42C7BA0C18BED8C2EAF /* gl_buffer.h */,
+				534FC7A8FA075DED229A6B51 /* sound_handle.h */,
+				DCC90C7982DD8AD67B5A181A /* array2.h */,
+				E266E72E32E28C5D99D2BFC2 /* mat22d.h */,
+				C6EF68EFAAD427515FF2AD64 /* mesh_gen_ite_simple.cpp */,
+				AC7B699E84DE46D596198FCA /* cpplint.cfg */,
+				9DA1AFE1C3B5F8C44956E6DF /* mesh_obj.cpp */,
+				2B909FD3D1736DD783731A19 /* data_writer.cpp */,
+				A2FF34B85725E6BA9C03B2C9 /* sound_handle.cpp */,
+				D510DB09CC7360898FFE4684 /* mtq_spmc_array.h */,
+				82B6200631907C34B377F8A8 /* glcorearb.h */,
+				910209E622A9DADEDF9F320F /* ofbx.cpp */,
+				7DE9FF36589C66C6118F6672 /* arctic_platform_pi_sound.cpp */,
+				31531B503B6079C360586DEF /* sound_task.h */,
+				0F0D04718D2ECBADEFAA163E /* mesh_gen_mod_complex.cpp */,
+				5EB15C11E62F643181EC89AC /* arctic_platform_tcpip.h */,
+				396FFEADDDC03AC750BBC865 /* gl_state.h */,
+				C0DA8B4D4A44711AB576A625 /* mtq_mpmc_befsbfsp_allocator.h */,
+				8842A15DBF3DA1F908507A7A /* easy_hw_sprite.h */,
+				B4A9A63BB6906E037B66E4A0 /* unicode.cpp */,
+				8DD30BD7432CE56E784CCDFD /* arctic_platform_byteorder.h */,
+				DEF4F61505075B72E05ACD8F /* gl_state.cpp */,
+				70351187409D74D2C69B31D8 /* arctic_platform_sound.h */,
+				34A37FCD1F68AD73005ACF7B /* engine.h */,
+				34A37FBA1F68AD73005ACF7B /* frustum3f.h */,
+				34A37FCF1F68AD73005ACF7B /* mat22f.h */,
+				34A37FC01F68AD73005ACF7B /* mat33f.h */,
+				34A37FB51F68AD73005ACF7B /* mat44f.h */,
+				34A37FD71F68AD73005ACF7B /* opengl.h */,
+				34A37FCC1F68AD73005ACF7B /* rgb.h */,
+				34A37FCB1F68AD73005ACF7B /* rgba.h */,
+				34A37FD61F68AD73005ACF7B /* scalar_math.h */,
+				34A37FB31F68AD73005ACF7B /* stb_vorbis.inc */,
+				34A37FC31F68AD73005ACF7B /* vec2f.h */,
+				34A37FC61F68AD73005ACF7B /* vec2si32.h */,
+				34A37FB91F68AD73005ACF7B /* vec3f.h */,
+				34A37FC41F68AD73005ACF7B /* vec3si32.h */,
+				34A37FBB1F68AD73005ACF7B /* vec4f.h */,
+				34A37FC21F68AD73005ACF7B /* vec4si32.h */,
+			);
+			indentWidth = 2;
+			name = engine;
+			path = ../arctic;
+			sourceTree = SOURCE_ROOT;
+			tabWidth = 2;
+			usesTabs = 0;
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		34436CF01F642A66004DD16E /* analyser */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 34436D051F642A66004DD16E /* Build configuration list for PBXNativeTarget "analyser" */;
+			buildPhases = (
+				34436CED1F642A66004DD16E /* Sources */,
+				34436CEE1F642A66004DD16E /* Frameworks */,
+				34436CEF1F642A66004DD16E /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = analyser;
+			productName = analyser;
+			productReference = 34436CF11F642A66004DD16E /* analyser.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		34436CE91F642A66004DD16E /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				LastUpgradeCheck = 1020;
+				ORGANIZATIONNAME = Arctic;
+				TargetAttributes = {
+					34436CF01F642A66004DD16E = {
+						CreatedOnToolsVersion = 8.3.3;
+						ProvisioningStyle = Automatic;
+					};
+				};
+			};
+			buildConfigurationList = 34436CEC1F642A66004DD16E /* Build configuration list for PBXProject "analyser" */;
+			compatibilityVersion = "Xcode 3.2";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 34436CE81F642A66004DD16E;
+			productRefGroup = 34436CF21F642A66004DD16E /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				34436CF01F642A66004DD16E /* analyser */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		34436CEF1F642A66004DD16E /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				34C1597B20019B5C0029160F /* data in Resources */,
+				34436CFE1F642A66004DD16E /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		34436CED1F642A66004DD16E /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				34A37FDC1F68AD73005ACF7B /* arctic_platform_windows.cpp in Sources */,
+				34A37FDE1F68AD73005ACF7B /* arctic_platform_macosx.mm in Sources */,
+				34A37FE11F68AD73005ACF7B /* engine.cpp in Sources */,
+				6769968E97284BD5423286E7 /* skeleton.cpp in Sources */,
+				64D5193C8D08980DC4386420 /* mesh_ply.cpp in Sources */,
+				DED8BE35A7F2E25DD9BE6D35 /* mesh_gen_prim_simple.cpp in Sources */,
+				43D6E8A4289424017C28A75F /* gl_buffer.cpp in Sources */,
+				44F8322B5EB5DE3A4742D961 /* dual_complex.cpp in Sources */,
+				56DA0366A145E27C28791732 /* mesh.cpp in Sources */,
+				071DF9FCAC1FC817F04F28E1 /* miniz.c in Sources */,
+				BC4F5115B781C8559A16EFCA /* gl_program.cpp in Sources */,
+				9AC4879E555F3968AE768A0E /* bitstream.cpp in Sources */,
+				DFC79B6157313820C0B92384 /* easy_hw_sprite.cpp in Sources */,
+				38869C0CB23F73068577FA83 /* csv.cpp in Sources */,
+				657A044BA8C2BC904C5CF818 /* mesh_intersect.cpp in Sources */,
+				E89869C45926FB5EFB08C1A0 /* mesh_gen_mod_simple.cpp in Sources */,
+				39E832CE5E78C2BA182EAE5D /* gl_framebuffer.cpp in Sources */,
+				454ED24B19C5229B31113CC2 /* arctic_platform_windows_tcpip.cpp in Sources */,
+				F8DA211E8569BD9931FA8E22 /* wave_function_collapse.cpp in Sources */,
+				6A18C0F7F8A739A561E01045 /* arctic_platform_pi_tcpip.cpp in Sources */,
+				66C19E262A6FFC12423D6E7C /* mesh_gen_adjacency.cpp in Sources */,
+				E58543D311BEE5008033B472 /* arctic_platform_pi_byteorder.cpp in Sources */,
+				4EE00C2752F2A4AD6DCDF3D5 /* arctic_platform_pi_input.cpp in Sources */,
+				60FAD56FB6EF38AFBA3069C8 /* arctic_mixer.cpp in Sources */,
+				69CFA3E5965A8A4D0629B3E2 /* mtq_spmc_array.cpp in Sources */,
+				0B46BBDDA6BD3E0021EDD8CD /* easy_hw_sprite_instance.cpp in Sources */,
+				1297E8F995D1CA89087DCF5A /* data_reader.cpp in Sources */,
+				0DCBECB99F08608937DDCBED /* arctic_platform_pi_es_egl.cpp in Sources */,
+				1EE346995AFC595996219B0C /* transform3f.cpp in Sources */,
+				84166CFDC2D4F596F3499804 /* mtq_fixed_block_queue.cpp in Sources */,
+				899FC91B9B01E1A09E346A0D /* arctic_platform_pi_fatal.cpp in Sources */,
+				AE84056BFBDC6C842CBA3FE5 /* arctic_platform_web.cpp in Sources */,
+				89697AEE270EDAFD0345525A /* gui.cpp in Sources */,
+				CED5F0A01AFDF1782CABDA88 /* arctic_sound.cpp in Sources */,
+				EDF3F6F44E12DFE6801603B5 /* arctic_platform_macosx_sound.mm in Sources */,
+				5AF1CD6121410F915CCB9826 /* pugixml.cpp in Sources */,
+				A240753AA429AAF2E2083626 /* mesh_gen_face_ops.cpp in Sources */,
+				D9735F01774EDA2D2AABB69E /* arctic_platform_web_sound.cpp in Sources */,
+				08B746CF395DCAD0F5B2BD8E /* quaternion.cpp in Sources */,
+				48517F449E0BA05275146B90 /* arctic_platform_pi_filesystem.cpp in Sources */,
+				C9E44F688624537D8B4A27AF /* arctic_platform_windows_sound.cpp in Sources */,
+				A456A962E147832BE9EBCEB4 /* arctic_platform_pi_opengl_glx.cpp in Sources */,
+				C722B76F8D16512CE7B9C751 /* gl_texture2d.cpp in Sources */,
+				D5EFD35CD938940F11C224FF /* mesh_gen_ite_simple.cpp in Sources */,
+				F1B85397E967935C6FCFD9DF /* mesh_obj.cpp in Sources */,
+				2DA404F000208C6A715999E3 /* data_writer.cpp in Sources */,
+				8C508513EB512AE273EC055D /* sound_handle.cpp in Sources */,
+				78293AF45CD18CFD3238D3D4 /* ofbx.cpp in Sources */,
+				4DFB2F27040BE437D3B5703A /* arctic_platform_pi_sound.cpp in Sources */,
+				44C2DC087D6C334508B2E461 /* mesh_gen_mod_complex.cpp in Sources */,
+				B48F369A7E60CCAF05217681 /* unicode.cpp in Sources */,
+				10E5D8B42F8F6E86F81DC5F6 /* gl_state.cpp in Sources */,
+				34A37FDF1F68AD73005ACF7B /* easy_sprite.cpp in Sources */,
+				34A37FE01F68AD73005ACF7B /* easy_sprite_instance.cpp in Sources */,
+				34C1595A200199EF0029160F /* font.cpp in Sources */,
+				34A37FE61F68AD73005ACF7B /* arctic_math.cpp in Sources */,
+				346FB0DC201EA50000CAD8E5 /* log.cpp in Sources */,
+				34A37FE21F68AD73005ACF7B /* easy_sound_instance.cpp in Sources */,
+				34A37FE51F68AD73005ACF7B /* arctic_input.cpp in Sources */,
+				34A37FE31F68AD73005ACF7B /* easy_sound.cpp in Sources */,
+				34C1597C20019B5C0029160F /* main.cpp in Sources */,
+				34A37FDD1F68AD73005ACF7B /* easy.cpp in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		34436D031F642A66004DD16E /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = NO;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_IDENTITY = "-";
+				CONFIGURATION_BUILD_DIR = "$(PROJECT_DIR)/build/$(CONFIGURATION)$(EFFECTIVE_PLATFORM_NAME)";
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				"HEADER_SEARCH_PATHS[arch=*]" = $PROJECT_DIR/..;
+				MACOSX_DEPLOYMENT_TARGET = 10.12;
+				MTL_ENABLE_DEBUG_INFO = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		34436D041F642A66004DD16E /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = NO;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_IDENTITY = "-";
+				CONFIGURATION_BUILD_DIR = "$(PROJECT_DIR)/build/$(CONFIGURATION)$(EFFECTIVE_PLATFORM_NAME)";
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				"HEADER_SEARCH_PATHS[arch=*]" = $PROJECT_DIR/..;
+				MACOSX_DEPLOYMENT_TARGET = 10.12;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		34436D061F642A66004DD16E /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COMBINE_HIDPI_IMAGES = YES;
+				"HEADER_SEARCH_PATHS[arch=*]" = (
+					$PROJECT_DIR/..,
+					$PROJECT_DIR/../arctic,
+				);
+				INFOPLIST_FILE = Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
+				PRODUCT_BUNDLE_IDENTIFIER = Arctic.analyser;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Debug;
+		};
+		34436D071F642A66004DD16E /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COMBINE_HIDPI_IMAGES = YES;
+				"HEADER_SEARCH_PATHS[arch=*]" = (
+					$PROJECT_DIR/..,
+					$PROJECT_DIR/../arctic,
+				);
+				INFOPLIST_FILE = Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
+				PRODUCT_BUNDLE_IDENTIFIER = Arctic.analyser;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		34436CEC1F642A66004DD16E /* Build configuration list for PBXProject "analyser" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				34436D031F642A66004DD16E /* Debug */,
+				34436D041F642A66004DD16E /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		34436D051F642A66004DD16E /* Build configuration list for PBXNativeTarget "analyser" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				34436D061F642A66004DD16E /* Debug */,
+				34436D071F642A66004DD16E /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 34436CE91F642A66004DD16E /* Project object */;
+}
