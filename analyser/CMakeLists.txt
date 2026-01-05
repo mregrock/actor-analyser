@@ -27,7 +27,7 @@ set(HEADER_DIR_2 .)
 file(GLOB_RECURSE RES_SOURCES "${DATA_DIR}/data/*")
 
 SET(CMAKE_CXX_COMPILER             "/usr/bin/clang++")
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 20)
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 ############## Define Project. ###############
 # ---- This the main options of project ---- #
@@ -123,7 +123,7 @@ ENDIF (APPLE)
 
 message(STATUS "CompilerId: ${CMAKE_CXX_COMPILER_ID}.")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++20")
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang++" OR "${CMAKE_CXX_COMPILER_ID}" STREQUAL "AppleClang")
     set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
     set (CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address")
