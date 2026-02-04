@@ -82,7 +82,7 @@ struct ArrowRec {
     ArrowPoint &p1 = points[end_idx - 1];
     ArrowPoint &p2 = points[end_idx];
     double intervalPart = Clamp((part - p1.length_part) / (p2.length_part - p1.length_part), 0.0, 1.0);
-    return Vec2F(Lerp(p1.position.x, p2.position.x, intervalPart), Lerp(p1.position.y, p2.position.y, intervalPart));
+    return Vec2F(Lerp(p1.position.x, p2.position.x, (float)intervalPart), Lerp(p1.position.y, p2.position.y, (float)intervalPart));
   }
 };
 
