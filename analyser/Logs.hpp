@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include "LogReader.hpp"
+#include "BinaryLogReader.hpp"
 #include "engine/arctic_platform_fatal.h"
 
 #include <sstream>
@@ -12,6 +13,9 @@
 #include <string>
 #include <algorithm>
 #include <set>
+#include <queue>
+#include <deque>
+#include <fstream>
 
 #include <iostream>
 #include <unordered_map>
@@ -135,28 +139,410 @@ public:
     to(to), from(from), start(start), end(end), message(message), message_idx(id) {}
   };
   
+  static void CompressTimelineGaps() {
+    if (logMessages_.size() < 2) return;
+
+    std::vector<VisualisationTime> starts;
+    starts.reserve(logMessages_.size());
+    for (auto& m : logMessages_) starts.push_back(m.start);
+    std::sort(starts.begin(), starts.end());
+
+    VisualisationTime maxGap = 0;
+    size_t gapIdx = 0;
+    for (size_t i = 1; i < starts.size(); ++i) {
+      VisualisationTime gap = starts[i] - starts[i - 1];
+      if (gap > maxGap) {
+        maxGap = gap;
+        gapIdx = i;
+      }
+    }
+
+    VisualisationTime totalRange = starts.back() - starts.front();
+    if (totalRange == 0 || maxGap <= totalRange / 2) return;
+
+    VisualisationTime clusterStart = starts[gapIdx];
+    VisualisationTime buffer = 1000000;
+    VisualisationTime shift = (clusterStart > buffer) ? clusterStart - buffer : 0;
+    if (shift == 0) return;
+
+    {
+      std::ofstream dbg("/tmp/actor_debug_log.txt", std::ios::app);
+      dbg << std::endl << "=== COMPRESS GAPS ===" << std::endl;
+      dbg << "Biggest gap: " << maxGap << " us at index " << gapIdx << std::endl;
+      dbg << "Total range: " << totalRange << " us" << std::endl;
+      dbg << "Cluster starts at: " << clusterStart << ", shift=" << shift << std::endl;
+      dbg << "Range before: 0 .. " << GetMaxTime() << std::endl;
+      dbg.close();
+    }
+
+    for (auto& m : logMessages_) {
+      m.start = std::max((VisualisationTime)0, m.start - shift);
+      m.end = std::max((VisualisationTime)0, m.end - shift);
+    }
+
+    for (auto& [id, lt] : lifeTime_) {
+      lt.first = std::max((VisualisationTime)0, lt.first - shift);
+      lt.second = std::max((VisualisationTime)0, lt.second - shift);
+    }
+
+    {
+      std::ofstream dbg("/tmp/actor_debug_log.txt", std::ios::app);
+      dbg << "Range after: 0 .. " << GetMaxTime() << std::endl;
+      dbg.close();
+    }
+  }
+
   static void ReadLogs(const std::string_view file) {
+    LogReader::ReadFile_(file, &rawFileData_);
+
+    if (BinaryLogReader::IsBinaryFormat(rawFileData_)) {
+      ReadLogsBinary();
+    } else {
+      ReadLogsText(file);
+    }
+  }
+
+  static void ReadLogsText(const std::string_view file) {
     LogReader::ReadFile(file);
     logLines_ = LogReader::GetLogLines();
-    
+
     LogReader::ReadFile_("data/actor_types_map.config", &actorTypesMapConfigData_);
     SetNewActorTypes(actorTypesMapConfigData_);
-    
+
     CreateRealLogLines();
     ParseRealLogLines();
     SetMessageToParsedLineInd();
-    
+
     CreateLogMessages();
     NormalizeLogMessagesTime();
-    
+
     CreateActorTypeToActorId();
     CreateActorIdToActorType();
-    
-    
+
     GetActorLifeInfo();
     SetActorLifeTime();
-    
+
     SetActorThreadActive();
+  }
+
+  static void ReadLogsBinary() {
+    LogReader::ReadFile_("data/actor_types_map.config", &actorTypesMapConfigData_);
+    SetNewActorTypes(actorTypesMapConfigData_);
+
+    BinaryLogReader::Parse(rawFileData_);
+
+    const auto& events = BinaryLogReader::GetEvents();
+    const auto& activityDict = BinaryLogReader::GetActivityDict();
+    const auto& eventNamesDict = BinaryLogReader::GetEventNamesDict();
+
+    binStrings_.clear();
+
+    for (auto& [idx, name] : activityDict) {
+      binStrings_.push_back(name);
+    }
+    for (auto& [idx, name] : eventNamesDict) {
+      binStrings_.push_back(name);
+    }
+
+    ActorIdx curUnusedActorId = 0;
+
+    auto getOrCreateActorIdx = [&](uint64_t rawId) -> ActorIdx {
+      std::string hexStr = BinaryLogReader::ActorIdToHex(rawId);
+      auto it = binActorIdMap_.find(rawId);
+      if (it != binActorIdMap_.end()) {
+        return it->second;
+      }
+      ActorIdx idx = curUnusedActorId++;
+      binActorIdMap_[rawId] = idx;
+      binStrings_.push_back(hexStr);
+      std::string_view sv = binStrings_.back();
+      actorNumIdToRealActorId_[idx] = sv;
+      realActorIdToActorNumId_[sv] = idx;
+      return idx;
+    };
+
+    static const std::string sendStr = "Send";
+    static const std::string receiveStr = "Receive";
+    static const std::string newStr = "New";
+    static const std::string dieStr = "Die";
+    static const std::string emptyStr = "";
+
+    parsedLogLines_.reserve(events.size());
+
+    for (size_t i = 0; i < events.size(); ++i) {
+      const BinaryEvent& ev = events[i];
+
+      if (ev.type == BinaryEventType::SendLocal || ev.type == BinaryEventType::ReceiveLocal) {
+        ParsedLogLine pll;
+        pll.type = (ev.type == BinaryEventType::SendLocal) ? std::string_view(sendStr) : std::string_view(receiveStr);
+
+        ActorIdx fromIdx = getOrCreateActorIdx(ev.actor1);
+        ActorIdx toIdx = getOrCreateActorIdx(ev.actor2);
+        pll.from = fromIdx;
+        pll.to = toIdx;
+
+        pll.time = static_cast<VisualisationTime>(ev.timestamp);
+
+        pll.message = emptyStr;
+
+        if (ev.type == BinaryEventType::ReceiveLocal) {
+          auto actIt = activityDict.find(ev.extra);
+          if (actIt != activityDict.end()) {
+            pll.actorType = std::string_view(actIt->second);
+          }
+        }
+
+        auto msgIt = eventNamesDict.find(ev.aux);
+        if (msgIt != eventNamesDict.end()) {
+          pll.messageType = std::string_view(msgIt->second);
+        }
+
+        pll.threadId = emptyStr;
+        pll.threadName = emptyStr;
+
+        parsedLogLines_.push_back(pll);
+
+      } else if (ev.type == BinaryEventType::New || ev.type == BinaryEventType::Die) {
+        ActorIdx actorIdx = getOrCreateActorIdx(ev.actor1);
+
+        NewDieLogLine ndl;
+        ndl.type = (ev.type == BinaryEventType::New) ? std::string_view(newStr) : std::string_view(dieStr);
+        ndl.id = actorNumIdToRealActorId_[actorIdx];
+
+        binStrings_.push_back(std::to_string(ev.timestamp));
+        ndl.time = binStrings_.back();
+        ndl.threadId = emptyStr;
+
+        newDieLogLines_.push_back(ndl);
+      }
+    }
+
+    maxActorId_ = curUnusedActorId;
+
+    std::sort(parsedLogLines_.begin(), parsedLogLines_.end(),
+              [](const ParsedLogLine& a, const ParsedLogLine& b) {
+                return a.time < b.time;
+              });
+
+    CreateLogMessagesBinary();
+
+    {
+      std::ofstream dbg("/tmp/actor_debug_log.txt");
+      dbg << "=== BINARY LOAD DEBUG ===" << std::endl;
+      dbg << "Total binary events: " << events.size() << std::endl;
+
+      size_t sendCount = 0, recvCount = 0;
+      for (auto& pll : parsedLogLines_) {
+        if (pll.type == "Send") sendCount++;
+        else if (pll.type == "Receive") recvCount++;
+      }
+      dbg << "ParsedLogLines: " << parsedLogLines_.size()
+          << " (Send=" << sendCount << ", Receive=" << recvCount << ")" << std::endl;
+      dbg << "NewDieLogLines: " << newDieLogLines_.size() << std::endl;
+      dbg << "LogMessages (correlated): " << logMessages_.size() << std::endl;
+      dbg << "Unique actors: " << maxActorId_ << std::endl;
+
+      if (!logMessages_.empty()) {
+        VisualisationTime minStart = logMessages_[0].start, maxEnd = logMessages_[0].end;
+        for (auto& m : logMessages_) {
+          minStart = std::min(minStart, m.start);
+          maxEnd = std::max(maxEnd, m.end);
+        }
+        dbg << "Message time range (before normalization): "
+            << minStart << " .. " << maxEnd << std::endl;
+
+        size_t withCoordCount = 0;
+        for (auto& m : logMessages_) {
+          bool fromOk = actorIdToActorType_.count(m.from) || actorNumIdToRealActorId_.count(m.from);
+          bool toOk = actorIdToActorType_.count(m.to) || actorNumIdToRealActorId_.count(m.to);
+          if (fromOk && toOk) withCoordCount++;
+        }
+        dbg << "Messages where both actors have type info: " << withCoordCount << std::endl;
+      } else {
+        dbg << "NO MESSAGES CORRELATED!" << std::endl;
+      }
+
+      if (!parsedLogLines_.empty()) {
+        dbg << "First 10 parsed lines:" << std::endl;
+        for (size_t i = 0; i < std::min((size_t)10, parsedLogLines_.size()); ++i) {
+          auto& p = parsedLogLines_[i];
+          dbg << "  [" << i << "] type=" << p.type
+              << " from=" << p.from << " to=" << p.to
+              << " time=" << p.time
+              << " msg=" << p.message << std::endl;
+        }
+        dbg << "Last 10 parsed lines:" << std::endl;
+        size_t startIdx = parsedLogLines_.size() > 10 ? parsedLogLines_.size() - 10 : 0;
+        for (size_t i = startIdx; i < parsedLogLines_.size(); ++i) {
+          auto& p = parsedLogLines_[i];
+          dbg << "  [" << i << "] type=" << p.type
+              << " from=" << p.from << " to=" << p.to
+              << " time=" << p.time
+              << " msg=" << p.message << std::endl;
+        }
+      }
+
+      if (!logMessages_.empty()) {
+        dbg << "First 10 correlated messages:" << std::endl;
+        for (size_t i = 0; i < std::min((size_t)10, logMessages_.size()); ++i) {
+          auto& m = logMessages_[i];
+          dbg << "  [" << i << "] from=" << m.from << " to=" << m.to
+              << " start=" << m.start << " end=" << m.end
+              << " msg=" << m.message
+              << " msgType=" << m.messageType << std::endl;
+        }
+      }
+      dbg.close();
+    }
+
+    NormalizeLogMessagesTime();
+
+    {
+      std::ofstream dbg("/tmp/actor_debug_log.txt", std::ios::app);
+      dbg << std::endl << "=== AFTER NORMALIZATION ===" << std::endl;
+      dbg << "oldMinTime_: " << oldMinTime_ << std::endl;
+      if (!logMessages_.empty()) {
+        VisualisationTime minStart = logMessages_[0].start, maxEnd = logMessages_[0].end;
+        for (auto& m : logMessages_) {
+          minStart = std::min(minStart, m.start);
+          maxEnd = std::max(maxEnd, m.end);
+        }
+        dbg << "Normalized message time range: " << minStart << " .. " << maxEnd << std::endl;
+        dbg << "MaxTime: " << GetMaxTime() << std::endl;
+      }
+      dbg.close();
+    }
+
+    CreateActorTypeToActorIdBinary();
+    CreateActorIdToActorTypeBinary();
+
+    for (auto& [rawId, actorIdx] : binActorIdMap_) {
+      if (!actorIdToActorType_.count(actorIdx)) {
+        binStrings_.push_back("SYSTEM");
+        std::string_view sv = binStrings_.back();
+        actorIdToActorType_[actorIdx] = sv;
+        actorTypeToActorId_[sv].push_back(actorIdx);
+      }
+    }
+
+    SetActorLifeTimeBinary();
+    CompressTimelineGaps();
+
+    {
+      std::ofstream dbg("/tmp/actor_debug_log.txt", std::ios::app);
+      dbg << std::endl << "=== ACTOR TYPES ===" << std::endl;
+      dbg << "actorTypeToActorId_ entries: " << actorTypeToActorId_.size() << std::endl;
+      dbg << "actorIdToActorType_ entries: " << actorIdToActorType_.size() << std::endl;
+      dbg << "actorTypesMap_ entries: " << actorTypesMap_.size() << std::endl;
+      for (auto& [type, ids] : actorTypeToActorId_) {
+        dbg << "  type='" << type << "' actors=" << ids.size() << std::endl;
+      }
+      dbg.close();
+    }
+  }
+
+  static void CreateLogMessagesBinary() {
+    using PairKey = std::pair<ActorIdx, ActorIdx>;
+    std::map<PairKey, std::queue<size_t>> sendQueues;
+
+    for (size_t i = 0; i < parsedLogLines_.size(); ++i) {
+      ParsedLogLine& pll = parsedLogLines_[i];
+      PairKey key = {pll.from, pll.to};
+
+      if (pll.type == "Send") {
+        sendQueues[key].push(i);
+      } else if (pll.type == "Receive") {
+        PairKey senderKey = {pll.from, pll.to};
+        auto it = sendQueues.find(senderKey);
+        if (it != sendQueues.end() && !it->second.empty()) {
+          size_t sendIdx = it->second.front();
+          it->second.pop();
+
+          ParsedLogLine& sendLine = parsedLogLines_[sendIdx];
+
+          LogMessage msg;
+          msg.from = sendLine.from;
+          msg.to = sendLine.to;
+          msg.start = sendLine.time;
+          msg.end = pll.time;
+          msg.message = sendLine.message;
+          static const std::string emptyMsgType;
+          msg.messageType = pll.messageType.value_or(std::string_view(emptyMsgType));
+          msg.message_idx = logMessages_.size();
+
+          sendLine.message_idx = msg.message_idx;
+          pll.message_idx = msg.message_idx;
+
+          logMessages_.push_back(msg);
+        }
+      }
+    }
+  }
+
+  static void CreateActorTypeToActorIdBinary() {
+    const auto& activityDict = BinaryLogReader::GetActivityDict();
+    std::set<ActorIdx> added;
+
+    for (const ParsedLogLine& pll : parsedLogLines_) {
+      if (!pll.actorType) continue;
+      if (added.count(pll.to)) continue;
+
+      std::string_view actorType = *pll.actorType;
+      if (actorTypesMap_.count(actorType)) {
+        actorType = actorTypesMap_[actorType];
+      }
+      actorTypeToActorId_[actorType].push_back(pll.to);
+      added.insert(pll.to);
+    }
+  }
+
+  static void CreateActorIdToActorTypeBinary() {
+    for (const ParsedLogLine& pll : parsedLogLines_) {
+      if (!pll.actorType) continue;
+
+      std::string_view actorType = *pll.actorType;
+      if (actorTypesMap_.count(actorType)) {
+        actorType = actorTypesMap_[actorType];
+      }
+      actorIdToActorType_[pll.to] = actorType;
+    }
+  }
+
+  static void SetActorLifeTimeBinary() {
+    std::map<ActorIdx, VisualisationTime> newActors;
+    std::map<ActorIdx, VisualisationTime> dieActors;
+
+    for (const NewDieLogLine& ndl : newDieLogLines_) {
+      if (!realActorIdToActorNumId_.count(ndl.id)) continue;
+      ActorIdx actorId = realActorIdToActorNumId_.at(ndl.id);
+      VisualisationTime t = std::stoll(std::string(ndl.time));
+
+      if (std::string(ndl.type) == "New") {
+        newActors[actorId] = t;
+      } else if (std::string(ndl.type) == "Die") {
+        dieActors[actorId] = t;
+      }
+    }
+
+    NormalizeLifeTimesFromMicroseconds(newActors, dieActors);
+  }
+
+  static void NormalizeLifeTimesFromMicroseconds(
+      std::map<ActorIdx, VisualisationTime>& newActors,
+      std::map<ActorIdx, VisualisationTime>& dieActors) {
+    VisualisationTime maxTime = GetMaxTime();
+
+    for (auto& [id, t] : newActors) {
+      t = (t < oldMinTime_) ? 0 : t - oldMinTime_;
+    }
+    for (auto& [id, t] : dieActors) {
+      t = (t < oldMinTime_) ? 0 : t - oldMinTime_;
+    }
+
+    for (ActorIdx id = 0; id <= maxActorId_; ++id) {
+      lifeTime_[id].first = newActors.count(id) ? newActors[id] : 0;
+      lifeTime_[id].second = dieActors.count(id) ? dieActors[id] : maxTime;
+    }
   }
   
   static bool IsTablet(ActorIdx id) {
@@ -305,14 +691,23 @@ public:
     logLines_.clear();
     realLogLines_.clear();
     parsedLogLines_.clear();
-    
+
     realActorIdToActorNumId_.clear();
     actorNumIdToRealActorId_.clear();
     messageToParsedLineInd_.clear();
-    
+
     logMessages_.clear();
     actorTypeToActorId_.clear();
     actorIdToActorType_.clear();
+
+    newDieLogLines_.clear();
+    lifeTime_.clear();
+    actorActivityTime_.clear();
+    threadActorIds_.clear();
+
+    rawFileData_.clear();
+    binStrings_.clear();
+    binActorIdMap_.clear();
   }
   
   static bool IsAlife(ActorIdx id, VisualisationTime time) {
@@ -721,7 +1116,11 @@ public:
   
   static std::map<ActorIdx, std::map<VisualisationTime, VisualisationTime>> actorActivityTime_;
   
-  static std::vector<std::pair<ActorIdx, std::string_view>> threadActorIds_;  
+  static std::vector<std::pair<ActorIdx, std::string_view>> threadActorIds_;
+
+  static std::vector<uint8_t> rawFileData_;
+  static std::deque<std::string> binStrings_;
+  static std::map<uint64_t, ActorIdx> binActorIdMap_;
 };
 
 std::ostream& operator<<(std::ostream& os, const Logs::LogMessage& lm);
