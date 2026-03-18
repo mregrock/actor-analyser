@@ -56,6 +56,8 @@ double g_distance_sq_to_nearest_actor = -1.0;
 
 TimeMode g_time_mode = kTimeNormal;
 
+VisualisationTime g_min_msg_display_duration = 500000;
+
 std::stringstream g_log;
 
 TraceScreen g_trace_screen;
@@ -89,13 +91,16 @@ void UpdateTime() {
         if (VisualisationHelper::IsOnlyBirthActive() && VisualisationHelper::GetMessageColor(m.id) == Rgba(255, 255, 0)) {
           continue;
         }
-        if (m.start <= g_time_line.GetTime() && m.end >= g_time_line.GetTime()) {
-          Si64 delivery = m.end - m.start;
-          if (delivery < shortest_delivery && delivery > 0) {
-            shortest_delivery = delivery;
-            latest_shortest_delivery_end = m.end;
-          } else if (delivery == shortest_delivery) {
-            latest_shortest_delivery_end = std::max(latest_shortest_delivery_end, (Ui64)m.end);
+        {
+          VisualisationTime dispEnd = std::max(m.end, m.start + g_min_msg_display_duration);
+          if (m.start <= g_time_line.GetTime() && dispEnd >= g_time_line.GetTime()) {
+            Si64 delivery = dispEnd - m.start;
+            if (delivery < shortest_delivery && delivery > 0) {
+              shortest_delivery = delivery;
+              latest_shortest_delivery_end = dispEnd;
+            } else if (delivery == shortest_delivery) {
+              latest_shortest_delivery_end = std::max(latest_shortest_delivery_end, (Ui64)dispEnd);
+            }
           }
         }
       }
@@ -162,7 +167,7 @@ void UpdateTime() {
     idx = 9;
   }
   constexpr std::array<double, 10> kSpeed =
-    {1.0, 4.0, 16.0, 64.0, 256.0, 1024.0, 4096.0, 16384.0, 16384.0*4, 16384.0*8};
+    {5000.0, 10000.0, 25000.0, 50000.0, 100000.0, 250000.0, 500000.0, 1000000.0, 5000000.0, 10000000.0};
   double sign = 1.0;
   if (IsKeyDown(kKeyShift) || IsKeyDown(kKeyLeftShift)) {
     sign = -1.0;
@@ -232,6 +237,8 @@ void DrawStatus() {
   static double prev_time = Time();
   static double last_update_at = -10;
   static double last_fps = 0;
+  static Si64 last_active_count = 0;
+  static Si64 last_visible_count = 0;
   double cur_time = Time();
   char buf[1024];
   g_dt = cur_time - prev_time;
@@ -239,9 +246,20 @@ void DrawStatus() {
   if (cur_time - last_update_at > 0.1) {
     last_fps = fps;
     last_update_at = cur_time;
+
+    last_active_count = 0;
+    last_visible_count = 0;
+    for (size_t i = 0; i < g_messages.size(); ++i) {
+      MessageRec &m = g_messages[i];
+      VisualisationTime dispEnd = std::max(m.end, m.start + g_min_msg_display_duration);
+      if (m.start <= g_time_line.GetTime() && dispEnd >= g_time_line.GetTime()) {
+        last_active_count++;
+        if (g_pgseet->HaveCoord(m.from) && g_pgseet->HaveCoord(m.to)) {
+          last_visible_count++;
+        }
+      }
+    }
   }
-  
-  
   
   snprintf(buf, sizeof(buf), "Speed: %0.0f ticks/s FPS: %03.1f Offset: %d,%d Zoom: %f",
            g_speed, last_fps, g_camera.offset_.x, g_camera.offset_.y, g_camera.scaleFactor_);
@@ -251,6 +269,37 @@ void DrawStatus() {
               kDrawBlendingModeColorize,
               kFilterNearest,
               Rgba(255,255,0));
+
+  snprintf(buf, sizeof(buf),
+           "Msgs: %zu total | Active: %lld | Visible: %lld | Time: %lld | MaxTime: %lld | Paused: %s",
+           g_messages.size(), last_active_count, last_visible_count,
+           (long long)g_time_line.GetTime(), (long long)g_time_line.maxTime_,
+           g_is_pause ? "YES" : "NO");
+  g_large_font.Draw(GetEngine()->GetBackbuffer(), buf, 10, ScreenSize().y - 30,
+              kTextOriginTop,
+              kTextAlignmentLeft,
+              kDrawBlendingModeColorize,
+              kFilterNearest,
+              Rgba(0,255,0));
+
+  if (!g_messages.empty()) {
+    VisualisationTime minStart = g_messages[0].start, maxEnd = g_messages[0].end;
+    for (auto& m : g_messages) {
+      minStart = std::min(minStart, m.start);
+      maxEnd = std::max(maxEnd, m.end);
+    }
+    snprintf(buf, sizeof(buf),
+             "MsgRange: %lld .. %lld | Actors: %lld | WithCoord: %zu",
+             (long long)minStart, (long long)maxEnd,
+             (long long)Logs::GetMaxActorId(), g_pgseet->coordedId_.size());
+    g_large_font.Draw(GetEngine()->GetBackbuffer(), buf, 10, ScreenSize().y - 50,
+                kTextOriginTop,
+                kTextAlignmentLeft,
+                kDrawBlendingModeColorize,
+                kFilterNearest,
+                Rgba(0,255,0));
+  }
+
   prev_time = cur_time;
 }
 
@@ -353,7 +402,9 @@ void DrawArrow(ArrowRec &arrow) {
 }
 
 void DrawMessage(ArrowRec &arrow, MessageRec &msg, double d_time, Rgba color) {
-  double part = (d_time - msg.start) / (msg.end - msg.start);
+  VisualisationTime displayEnd = std::max(msg.end, msg.start + g_min_msg_display_duration);
+  double duration = (double)(displayEnd - msg.start);
+  double part = (d_time - msg.start) / (duration > 0 ? duration : 1.0);
   Vec2F pos = arrow.PositionAtPart(part);
   Vec2Si32 coord = Vec2Si32(g_camera.WorldToScreen(pos));
   
@@ -390,7 +441,8 @@ void DrawMessage(ArrowRec &arrow, MessageRec &msg, double d_time, Rgba color) {
 }
 
 void DrawArrowAndMessage(MessageRec &m) {
-  if (m.start <= g_time_line.GetTime() && m.end >= g_time_line.GetTime()) {
+  VisualisationTime displayEnd = std::max(m.end, m.start + g_min_msg_display_duration);
+  if (m.start <= g_time_line.GetTime() && displayEnd >= g_time_line.GetTime()) {
     std::tuple<ActorIdx, ActorIdx> fromTo(m.from, m.to);
     ArrowRec &arrow = g_arrows[fromTo];
     UpdateArrow(arrow);
@@ -442,7 +494,7 @@ void EasyMain() {
   g_large_font.Load("data/arctic_one_bmf.fnt");
   g_font.LoadLetterBits(g_tiny_font_letters, 8, 8);
   
-  Logs::ReadLogs("data/storage_start_err.log");
+  Logs::ReadLogs("data/actors_trace.bin");
   VisualisationHelper::RecalcMessagesColor();
 
   
@@ -460,6 +512,7 @@ void EasyMain() {
   
   g_time_line.SetMouse(&mouse);
   g_time_line.SetMaxTime(Logs::GetMaxTime());
+
   
   ppp.SetAction([](){
     g_is_pause = !g_is_pause;
@@ -501,6 +554,35 @@ void EasyMain() {
       arrow.from = m.from;
       arrow.to = m.to;
     }
+  }
+
+  {
+    std::ofstream dbg("/tmp/actor_debug_log.txt", std::ios::app);
+    dbg << std::endl << "=== MAIN INIT DEBUG ===" << std::endl;
+    dbg << "g_messages.size: " << g_messages.size() << std::endl;
+    dbg << "g_actors.size: " << g_actors.size() << std::endl;
+    dbg << "g_arrows.size: " << g_arrows.size() << std::endl;
+    dbg << "maxTime: " << g_time_line.maxTime_ << std::endl;
+    dbg << "coordedId count: " << g_pgseet->coordedId_.size() << std::endl;
+
+    size_t msgsWithCoord = 0;
+    for (size_t i = 0; i < g_messages.size(); ++i) {
+      if (g_pgseet->HaveCoord(g_messages[i].from) && g_pgseet->HaveCoord(g_messages[i].to)) {
+        msgsWithCoord++;
+      }
+    }
+    dbg << "Messages where BOTH actors have coords: " << msgsWithCoord << std::endl;
+
+    if (!g_messages.empty()) {
+      dbg << "First 5 messages:" << std::endl;
+      for (size_t i = 0; i < std::min((size_t)5, g_messages.size()); ++i) {
+        auto& m = g_messages[i];
+        dbg << "  [" << i << "] from=" << m.from << "(coord=" << g_pgseet->HaveCoord(m.from) << ")"
+            << " to=" << m.to << "(coord=" << g_pgseet->HaveCoord(m.to) << ")"
+            << " start=" << m.start << " end=" << m.end << std::endl;
+      }
+    }
+    dbg.close();
   }
   
   
