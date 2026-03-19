@@ -56,7 +56,7 @@ double g_distance_sq_to_nearest_actor = -1.0;
 
 TimeMode g_time_mode = kTimeNormal;
 
-VisualisationTime g_min_msg_display_duration = 500000;
+VisualisationTime g_min_msg_display_duration = 50000;
 
 std::stringstream g_log;
 
@@ -493,8 +493,9 @@ void EasyMain() {
   ResizeScreen(1920, 1080);
   g_large_font.Load("data/arctic_one_bmf.fnt");
   g_font.LoadLetterBits(g_tiny_font_letters, 8, 8);
-  
+
   Logs::ReadLogs("data/actors_trace.bin");
+  // Logs::ReadLogs("data/storage_start_err.log");
   VisualisationHelper::RecalcMessagesColor();
 
   

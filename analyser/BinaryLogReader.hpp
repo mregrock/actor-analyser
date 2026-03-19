@@ -68,11 +68,15 @@ public:
 
     activityDict_.clear();
     eventNamesDict_.clear();
+    threadPoolDict_.clear();
     events_.clear();
     stringStorage_.clear();
 
     ParseActivityDict(data, offset);
     ParseEventNamesDict(data, offset);
+    if (offset < dictEnd) {
+      ParseThreadPoolDict(data, offset);
+    }
 
     size_t eventsOffset = sizeof(BinaryFileHeader) + header_.headerSize;
     size_t eventsEnd = eventsOffset + header_.eventCount * sizeof(BinaryEvent);
@@ -89,6 +93,7 @@ public:
   static const std::vector<BinaryEvent>& GetEvents() { return events_; }
   static const std::map<uint32_t, std::string>& GetActivityDict() { return activityDict_; }
   static const std::map<uint32_t, std::string>& GetEventNamesDict() { return eventNamesDict_; }
+  static const std::map<uint32_t, std::string>& GetThreadPoolDict() { return threadPoolDict_; }
 
   static std::string ActorIdToHex(uint64_t id) {
     std::ostringstream oss;
@@ -135,9 +140,19 @@ private:
     }
   }
 
+  static void ParseThreadPoolDict(const std::vector<uint8_t>& data, size_t& offset) {
+    uint32_t count = ReadU32(data, offset);
+    for (uint32_t i = 0; i < count; ++i) {
+      uint32_t threadIdx = ReadU32(data, offset);
+      std::string name = ReadString(data, offset);
+      threadPoolDict_[threadIdx] = std::move(name);
+    }
+  }
+
   static BinaryFileHeader header_;
   static std::vector<BinaryEvent> events_;
   static std::map<uint32_t, std::string> activityDict_;
   static std::map<uint32_t, std::string> eventNamesDict_;
+  static std::map<uint32_t, std::string> threadPoolDict_;
   static std::vector<std::string> stringStorage_;
 };

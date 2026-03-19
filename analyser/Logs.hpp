@@ -185,6 +185,15 @@ public:
       lt.second = std::max((VisualisationTime)0, lt.second - shift);
     }
 
+    for (auto& [id, timeMap] : actorActivityTime_) {
+      std::map<VisualisationTime, VisualisationTime> shifted;
+      for (auto& [start, end] : timeMap) {
+        shifted[std::max((VisualisationTime)0, start - shift)] =
+            std::max((VisualisationTime)0, end - shift);
+      }
+      timeMap = std::move(shifted);
+    }
+
     {
       std::ofstream dbg("/tmp/actor_debug_log.txt", std::ios::app);
       dbg << "Range after: 0 .. " << GetMaxTime() << std::endl;
@@ -246,18 +255,33 @@ public:
 
     ActorIdx curUnusedActorId = 0;
 
+    const auto& threadPoolDict = BinaryLogReader::GetThreadPoolDict();
+
     auto getOrCreateActorIdx = [&](uint64_t rawId) -> ActorIdx {
-      std::string hexStr = BinaryLogReader::ActorIdToHex(rawId);
       auto it = binActorIdMap_.find(rawId);
       if (it != binActorIdMap_.end()) {
         return it->second;
       }
       ActorIdx idx = curUnusedActorId++;
       binActorIdMap_[rawId] = idx;
-      binStrings_.push_back(hexStr);
+      binStrings_.push_back(BinaryLogReader::ActorIdToHex(rawId));
       std::string_view sv = binStrings_.back();
       actorNumIdToRealActorId_[idx] = sv;
       realActorIdToActorNumId_[sv] = idx;
+      return idx;
+    };
+
+    auto getOrCreatePoolActorIdx = [&](const std::string& poolName) -> ActorIdx {
+      auto it = realActorIdToActorNumId_.find(poolName);
+      if (it != realActorIdToActorNumId_.end()) {
+        return it->second;
+      }
+      ActorIdx idx = curUnusedActorId++;
+      binStrings_.push_back(poolName);
+      std::string_view sv = binStrings_.back();
+      actorNumIdToRealActorId_[idx] = sv;
+      realActorIdToActorNumId_[sv] = idx;
+      threadActorIds_.push_back({idx, sv});
       return idx;
     };
 
@@ -266,6 +290,16 @@ public:
     static const std::string newStr = "New";
     static const std::string dieStr = "Die";
     static const std::string emptyStr = "";
+
+    std::map<uint8_t, std::string_view> threadIdStrings;
+    for (const auto& ev : events) {
+      if (ev.type == BinaryEventType::SendLocal || ev.type == BinaryEventType::ReceiveLocal) {
+        if (!threadIdStrings.count(ev.flags)) {
+          binStrings_.push_back("T" + std::to_string(ev.flags));
+          threadIdStrings[ev.flags] = binStrings_.back();
+        }
+      }
+    }
 
     parsedLogLines_.reserve(events.size());
 
@@ -276,7 +310,17 @@ public:
         ParsedLogLine pll;
         pll.type = (ev.type == BinaryEventType::SendLocal) ? std::string_view(sendStr) : std::string_view(receiveStr);
 
-        ActorIdx fromIdx = getOrCreateActorIdx(ev.actor1);
+        ActorIdx fromIdx;
+        if (ev.actor1 == 0) {
+          auto tpIt = threadPoolDict.find(ev.flags);
+          if (tpIt != threadPoolDict.end()) {
+            fromIdx = getOrCreatePoolActorIdx(tpIt->second);
+          } else {
+            fromIdx = getOrCreatePoolActorIdx("Thread_" + std::to_string(ev.flags));
+          }
+        } else {
+          fromIdx = getOrCreateActorIdx(ev.actor1);
+        }
         ActorIdx toIdx = getOrCreateActorIdx(ev.actor2);
         pll.from = fromIdx;
         pll.to = toIdx;
@@ -285,7 +329,7 @@ public:
 
         pll.message = emptyStr;
 
-        if (ev.type == BinaryEventType::ReceiveLocal) {
+        {
           auto actIt = activityDict.find(ev.extra);
           if (actIt != activityDict.end()) {
             pll.actorType = std::string_view(actIt->second);
@@ -297,8 +341,8 @@ public:
           pll.messageType = std::string_view(msgIt->second);
         }
 
-        pll.threadId = emptyStr;
-        pll.threadName = emptyStr;
+        pll.threadId = threadIdStrings[ev.flags];
+        pll.threadName = threadIdStrings[ev.flags];
 
         parsedLogLines_.push_back(pll);
 
@@ -418,7 +462,7 @@ public:
 
     for (auto& [rawId, actorIdx] : binActorIdMap_) {
       if (!actorIdToActorType_.count(actorIdx)) {
-        binStrings_.push_back("SYSTEM");
+        binStrings_.push_back("UNKNOWN");
         std::string_view sv = binStrings_.back();
         actorIdToActorType_[actorIdx] = sv;
         actorTypeToActorId_[sv].push_back(actorIdx);
@@ -426,6 +470,7 @@ public:
     }
 
     SetActorLifeTimeBinary();
+    SetActorThreadActive();
     CompressTimelineGaps();
 
     {
@@ -480,31 +525,41 @@ public:
   }
 
   static void CreateActorTypeToActorIdBinary() {
-    const auto& activityDict = BinaryLogReader::GetActivityDict();
     std::set<ActorIdx> added;
+
+    for (auto& [actorIdx, poolName] : threadActorIds_) {
+      added.insert(actorIdx);
+      actorTypeToActorId_[poolName].push_back(actorIdx);
+    }
 
     for (const ParsedLogLine& pll : parsedLogLines_) {
       if (!pll.actorType) continue;
-      if (added.count(pll.to)) continue;
+      ActorIdx target = (pll.type == "Send") ? pll.from : pll.to;
+      if (added.count(target)) continue;
 
       std::string_view actorType = *pll.actorType;
       if (actorTypesMap_.count(actorType)) {
         actorType = actorTypesMap_[actorType];
       }
-      actorTypeToActorId_[actorType].push_back(pll.to);
-      added.insert(pll.to);
+      actorTypeToActorId_[actorType].push_back(target);
+      added.insert(target);
     }
   }
 
   static void CreateActorIdToActorTypeBinary() {
+    for (auto& [actorIdx, poolName] : threadActorIds_) {
+      actorIdToActorType_[actorIdx] = poolName;
+    }
+
     for (const ParsedLogLine& pll : parsedLogLines_) {
       if (!pll.actorType) continue;
+      ActorIdx target = (pll.type == "Send") ? pll.from : pll.to;
 
       std::string_view actorType = *pll.actorType;
       if (actorTypesMap_.count(actorType)) {
         actorType = actorTypesMap_[actorType];
       }
-      actorIdToActorType_[pll.to] = actorType;
+      actorIdToActorType_[target] = actorType;
     }
   }
 
