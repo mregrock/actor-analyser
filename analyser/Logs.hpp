@@ -20,6 +20,7 @@
 #include <iostream>
 #include <unordered_map>
 #include <vector>
+#include <tuple>
 
 #include "globals.h"
 
@@ -87,7 +88,8 @@ public:
     std::optional<std::string_view> messageType;
     std::string_view threadId;
     std::string_view threadName;
-    
+    uint32_t auxTypeId = 0;
+
     // FK for the message array
     Si64 message_idx = -1;
     
@@ -336,6 +338,7 @@ public:
           }
         }
 
+        pll.auxTypeId = ev.aux;
         auto msgIt = eventNamesDict.find(ev.aux);
         if (msgIt != eventNamesDict.end()) {
           pll.messageType = std::string_view(msgIt->second);
@@ -348,6 +351,13 @@ public:
 
       } else if (ev.type == BinaryEventType::New || ev.type == BinaryEventType::Die) {
         ActorIdx actorIdx = getOrCreateActorIdx(ev.actor1);
+
+        if (ev.type == BinaryEventType::New && ev.extra != 0) {
+          auto actIt = activityDict.find(ev.extra);
+          if (actIt != activityDict.end()) {
+            newActorTypeHints_[actorIdx] = std::string_view(actIt->second);
+          }
+        }
 
         NewDieLogLine ndl;
         ndl.type = (ev.type == BinaryEventType::New) ? std::string_view(newStr) : std::string_view(dieStr);
@@ -462,10 +472,15 @@ public:
 
     for (auto& [rawId, actorIdx] : binActorIdMap_) {
       if (!actorIdToActorType_.count(actorIdx)) {
-        binStrings_.push_back("UNKNOWN");
-        std::string_view sv = binStrings_.back();
-        actorIdToActorType_[actorIdx] = sv;
-        actorTypeToActorId_[sv].push_back(actorIdx);
+        std::string_view typeToUse;
+        if (newActorTypeHints_.count(actorIdx)) {
+          typeToUse = newActorTypeHints_[actorIdx];
+        } else {
+          binStrings_.push_back("UNKNOWN");
+          typeToUse = binStrings_.back();
+        }
+        actorIdToActorType_[actorIdx] = typeToUse;
+        actorTypeToActorId_[typeToUse].push_back(actorIdx);
       }
     }
 
@@ -487,38 +502,62 @@ public:
   }
 
   static void CreateLogMessagesBinary() {
-    using PairKey = std::pair<ActorIdx, ActorIdx>;
-    std::map<PairKey, std::queue<size_t>> sendQueues;
+    using CorrKey = std::tuple<ActorIdx, ActorIdx, uint32_t>;
+    std::map<CorrKey, std::queue<size_t>> sendQueues;
+
+    // Fallback queue for scheduler-routed sends (from is a thread/pool actor),
+    // keyed by {to, aux}. Used when the receiving thread differs from the sending
+    // thread (common for scheduled self-pings), so the normal {from,to,aux} key fails.
+    using FallbackKey = std::pair<ActorIdx, uint32_t>;
+    std::map<FallbackKey, std::queue<size_t>> fallbackSendQueues;
+
+    std::set<ActorIdx> threadActorIdSet;
+    for (auto& [idx, name] : threadActorIds_) {
+      threadActorIdSet.insert(idx);
+    }
+
+    auto makeMsg = [&](ParsedLogLine& sendLine, ParsedLogLine& recvLine,
+                       ActorIdx from, ActorIdx to) {
+      static const std::string emptyMsgType;
+      LogMessage msg;
+      msg.from = from;
+      msg.to = to;
+      msg.start = sendLine.time;
+      msg.end = recvLine.time;
+      msg.message = sendLine.message;
+      msg.messageType = recvLine.messageType.value_or(std::string_view(emptyMsgType));
+      msg.message_idx = logMessages_.size();
+      sendLine.message_idx = msg.message_idx;
+      recvLine.message_idx = msg.message_idx;
+      logMessages_.push_back(msg);
+    };
 
     for (size_t i = 0; i < parsedLogLines_.size(); ++i) {
       ParsedLogLine& pll = parsedLogLines_[i];
-      PairKey key = {pll.from, pll.to};
+      CorrKey key = {pll.from, pll.to, pll.auxTypeId};
 
       if (pll.type == "Send") {
         sendQueues[key].push(i);
+        if (threadActorIdSet.count(pll.from)) {
+          fallbackSendQueues[{pll.to, pll.auxTypeId}].push(i);
+        }
       } else if (pll.type == "Receive") {
-        PairKey senderKey = {pll.from, pll.to};
-        auto it = sendQueues.find(senderKey);
+        CorrKey recvKey = {pll.from, pll.to, pll.auxTypeId};
+        auto it = sendQueues.find(recvKey);
         if (it != sendQueues.end() && !it->second.empty()) {
           size_t sendIdx = it->second.front();
           it->second.pop();
-
           ParsedLogLine& sendLine = parsedLogLines_[sendIdx];
+          makeMsg(sendLine, pll, sendLine.from, sendLine.to);
+        } else if (threadActorIdSet.count(pll.from)) {
 
-          LogMessage msg;
-          msg.from = sendLine.from;
-          msg.to = sendLine.to;
-          msg.start = sendLine.time;
-          msg.end = pll.time;
-          msg.message = sendLine.message;
-          static const std::string emptyMsgType;
-          msg.messageType = pll.messageType.value_or(std::string_view(emptyMsgType));
-          msg.message_idx = logMessages_.size();
-
-          sendLine.message_idx = msg.message_idx;
-          pll.message_idx = msg.message_idx;
-
-          logMessages_.push_back(msg);
+          auto fit = fallbackSendQueues.find({pll.to, pll.auxTypeId});
+          if (fit != fallbackSendQueues.end() && !fit->second.empty()) {
+            size_t sendIdx = fit->second.front();
+            fit->second.pop();
+            ParsedLogLine& sendLine = parsedLogLines_[sendIdx];
+            makeMsg(sendLine, pll, pll.to, pll.to);
+          }
         }
       }
     }
@@ -636,6 +675,7 @@ public:
   struct ThreadState {
     ActorIdx cur_actor_idx = -1;
     Si64 cur_message_idx = -1;
+    bool has_active_interval = false;
   };
   
   static void SetActorThreadActive() {
@@ -660,14 +700,19 @@ public:
         ActorIdx curActorId = parsedLogLine.to;
         std::string_view curThreadId = parsedLogLine.threadId;
         auto thr_it = usedThreads.find(curThreadId);
-        if (thr_it != usedThreads.end()) {
+        if (thr_it != usedThreads.end() && thr_it->second.has_active_interval) {
           actorActivityTime_[thr_it->second.cur_actor_idx].rbegin()->second = parsedLogLine.time - oldMinTime_;
         }
         ThreadState &tstate = usedThreads[curThreadId];
         tstate.cur_actor_idx = curActorId;
         tstate.cur_message_idx = parsedLogLine.message_idx;
-      
-        actorActivityTime_[curActorId][parsedLogLine.time - oldMinTime_] = maxTime - oldMinTime_;
+
+        if (parsedLogLine.message_idx >= 0) {
+          actorActivityTime_[curActorId][parsedLogLine.time - oldMinTime_] = maxTime;
+          tstate.has_active_interval = true;
+        } else {
+          tstate.has_active_interval = false;
+        }
       }
     }
   }
@@ -763,6 +808,7 @@ public:
     rawFileData_.clear();
     binStrings_.clear();
     binActorIdMap_.clear();
+    newActorTypeHints_.clear();
   }
   
   static bool IsAlife(ActorIdx id, VisualisationTime time) {
@@ -1176,6 +1222,7 @@ public:
   static std::vector<uint8_t> rawFileData_;
   static std::deque<std::string> binStrings_;
   static std::map<uint64_t, ActorIdx> binActorIdMap_;
+  static std::map<ActorIdx, std::string_view> newActorTypeHints_;
 };
 
 std::ostream& operator<<(std::ostream& os, const Logs::LogMessage& lm);
