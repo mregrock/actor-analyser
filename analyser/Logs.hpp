@@ -268,6 +268,10 @@ public:
     const auto& events = BinaryLogReader::GetEvents();
     const auto& activityDict = BinaryLogReader::GetActivityDict();
     const auto& eventNamesDict = BinaryLogReader::GetEventNamesDict();
+    const uint64_t startTs = BinaryLogReader::GetHeader().startTimestampUs;
+    auto absTs = [startTs](uint32_t deltaUs) -> uint64_t {
+      return startTs + static_cast<uint64_t>(deltaUs);
+    };
 
     binStrings_.clear();
 
@@ -350,7 +354,7 @@ public:
         pll.from = fromIdx;
         pll.to = toIdx;
 
-        pll.time = static_cast<VisualisationTime>(ev.timestamp);
+        pll.time = static_cast<VisualisationTime>(absTs(ev.deltaUs));
 
         pll.message = emptyStr;
 
@@ -376,7 +380,7 @@ public:
 
       } else if (ev.type == BinaryEventType::ForwardLocal) {
         ForwardEvent fe;
-        fe.time = static_cast<VisualisationTime>(ev.timestamp);
+        fe.time = static_cast<VisualisationTime>(absTs(ev.deltaUs));
         fe.oldPtr = ev.handlePtr;
         fe.newPtr = ev.actor1;
         fe.aux = ev.aux;
@@ -398,7 +402,7 @@ public:
         ndl.type = (ev.type == BinaryEventType::New) ? std::string_view(newStr) : std::string_view(dieStr);
         ndl.id = actorNumIdToRealActorId_[actorIdx];
 
-        binStrings_.push_back(std::to_string(ev.timestamp));
+        binStrings_.push_back(std::to_string(absTs(ev.deltaUs)));
         ndl.time = binStrings_.back();
         ndl.threadId = emptyStr;
 
@@ -423,6 +427,8 @@ public:
     {
       std::ofstream dbg("/tmp/actor_debug_log.txt");
       dbg << "=== BINARY LOAD DEBUG ===" << std::endl;
+      dbg << "Trace version: " << BinaryLogReader::GetHeader().version << std::endl;
+      dbg << "Start timestamp (us): " << startTs << std::endl;
       dbg << "Total binary events: " << events.size() << std::endl;
 
       size_t sendCount = 0, recvCount = 0;

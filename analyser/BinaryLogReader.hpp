@@ -12,8 +12,8 @@
 
 static constexpr uint32_t YTRA_MAGIC = 0x41525459;
 
-static constexpr uint32_t YTRA_VERSION_MIN = 1;
-static constexpr uint32_t YTRA_VERSION_MAX = 2;
+static constexpr uint32_t YTRA_VERSION_MIN = 3;
+static constexpr uint32_t YTRA_VERSION_MAX = 3;
 
 struct BinaryFileHeader {
   uint32_t magic;
@@ -21,25 +21,25 @@ struct BinaryFileHeader {
   uint32_t nodeId;
   uint32_t headerSize;
   uint64_t eventCount;
+  uint64_t startTimestampUs;
 };
 
-static_assert(sizeof(BinaryFileHeader) == 24);
+static_assert(sizeof(BinaryFileHeader) == 32);
 
-struct BinaryEvent {
-  uint64_t timestamp;
+struct __attribute__((packed)) BinaryEvent {
   uint64_t actor1;
   uint64_t actor2;
+  uint64_t handlePtr;
+  uint32_t deltaUs;
   uint32_t aux;
   uint16_t extra;
   uint8_t  type;
   uint8_t  flags;
-  uint64_t handlePtr;
 };
 
-static_assert(sizeof(BinaryEvent) == 40);
+static_assert(sizeof(BinaryEvent) == 36);
 
-static constexpr size_t kBinaryEventSizeV1 = 32;
-static constexpr size_t kBinaryEventSizeV2 = 40;
+static constexpr size_t kBinaryEventSizeV3 = 36;
 
 enum BinaryEventType : uint8_t {
   SendLocal    = 0,
@@ -71,7 +71,11 @@ public:
     if (header_.version < YTRA_VERSION_MIN || header_.version > YTRA_VERSION_MAX) {
       std::ostringstream oss;
       oss << "BinaryLogReader: unsupported trace version " << header_.version
-          << " (supported range: " << YTRA_VERSION_MIN << ".." << YTRA_VERSION_MAX << ")";
+          << " (supported: " << YTRA_VERSION_MIN;
+      if (YTRA_VERSION_MIN != YTRA_VERSION_MAX) {
+        oss << ".." << YTRA_VERSION_MAX;
+      }
+      oss << "). Legacy v1/v2 traces are no longer supported.";
       throw std::runtime_error(oss.str());
     }
 
@@ -94,24 +98,14 @@ public:
     }
 
     size_t eventsOffset = sizeof(BinaryFileHeader) + header_.headerSize;
-    const size_t recordSize = (header_.version == 1) ? kBinaryEventSizeV1 : kBinaryEventSizeV2;
-    size_t eventsEnd = eventsOffset + header_.eventCount * recordSize;
+    size_t eventsEnd = eventsOffset + header_.eventCount * kBinaryEventSizeV3;
     if (eventsEnd > data.size()) {
       throw std::runtime_error("BinaryLogReader: truncated events section");
     }
 
     events_.assign(header_.eventCount, BinaryEvent{});
-    if (header_.version == 1) {
-      for (uint64_t i = 0; i < header_.eventCount; ++i) {
-        BinaryEvent& ev = events_[i];
-        std::memcpy(&ev, data.data() + eventsOffset + i * kBinaryEventSizeV1,
-                    kBinaryEventSizeV1);
-        ev.handlePtr = 0;
-      }
-    } else {
-      std::memcpy(events_.data(), data.data() + eventsOffset,
-                  header_.eventCount * kBinaryEventSizeV2);
-    }
+    std::memcpy(events_.data(), data.data() + eventsOffset,
+                header_.eventCount * kBinaryEventSizeV3);
   }
 
   static const BinaryFileHeader& GetHeader() { return header_; }
@@ -119,6 +113,10 @@ public:
   static const std::map<uint32_t, std::string>& GetActivityDict() { return activityDict_; }
   static const std::map<uint32_t, std::string>& GetEventNamesDict() { return eventNamesDict_; }
   static const std::map<uint32_t, std::string>& GetThreadPoolDict() { return threadPoolDict_; }
+
+  static uint64_t AbsTimestampUs(const BinaryEvent& ev) {
+    return header_.startTimestampUs + static_cast<uint64_t>(ev.deltaUs);
+  }
 
   static std::string ActorIdToHex(uint64_t id) {
     std::ostringstream oss;
