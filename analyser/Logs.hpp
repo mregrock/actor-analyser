@@ -232,7 +232,6 @@ public:
 
     GetActorLifeInfo();
     SetActorLifeTime();
-
     SetActorThreadActive();
   }
 
@@ -618,7 +617,46 @@ public:
       }
     }
 
+    {
+      std::ofstream dbg("/tmp/actor_debug_log.txt", std::ios::app);
+      dbg << std::endl << "=== SET ACTOR LIFE TIME BINARY ===" << std::endl;
+      dbg << "oldMinTime_: " << oldMinTime_ << std::endl;
+      dbg << "newActors count: " << newActors.size() << std::endl;
+      dbg << "dieActors count: " << dieActors.size() << std::endl;
+      size_t beforeCount = 0, afterCount = 0;
+      VisualisationTime minNewTs = INT64_MAX, maxNewTs = 0;
+      for (auto& [id, t] : newActors) {
+        if (t < oldMinTime_) beforeCount++;
+        else afterCount++;
+        minNewTs = std::min(minNewTs, t);
+        maxNewTs = std::max(maxNewTs, t);
+      }
+      dbg << "New events before oldMinTime_: " << beforeCount << std::endl;
+      dbg << "New events after/equal oldMinTime_: " << afterCount << std::endl;
+      if (!newActors.empty()) {
+        dbg << "New event ts range: " << minNewTs << " .. " << maxNewTs << std::endl;
+        dbg << "oldMinTime_ - minNewTs: " << (long long)(oldMinTime_ - minNewTs) << std::endl;
+      }
+      dbg.close();
+    }
+
     NormalizeLifeTimesFromMicroseconds(newActors, dieActors);
+
+    {
+      std::ofstream dbg("/tmp/actor_debug_log.txt", std::ios::app);
+      dbg << "After normalize, sample lifeTime values (first 10 with New events):" << std::endl;
+      int cnt = 0;
+      for (auto& [id, lt] : lifeTime_) {
+        if (lt.first > 0 && cnt < 10) {
+          dbg << "  actor " << id << ": birth=" << lt.first << " death=" << lt.second << std::endl;
+          cnt++;
+        }
+      }
+      if (cnt == 0) {
+        dbg << "  (all actors have birth time = 0)" << std::endl;
+      }
+      dbg.close();
+    }
   }
 
   static void NormalizeLifeTimesFromMicroseconds(
@@ -811,11 +849,12 @@ public:
     newActorTypeHints_.clear();
   }
   
-  static bool IsAlife(ActorIdx id, VisualisationTime time) {
+  static bool IsAlife(ActorIdx id, VisualisationTime time, VisualisationTime minDuration = 0) {
     if (!lifeTime_.count(id)) {
       return true;
     }
-    if (lifeTime_[id].first <= time && lifeTime_[id].second >= time) {
+    VisualisationTime displayEnd = std::max(lifeTime_[id].second, lifeTime_[id].first + minDuration);
+    if (lifeTime_[id].first <= time && displayEnd >= time) {
       return true;
     }
     return false;

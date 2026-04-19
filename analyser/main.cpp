@@ -30,6 +30,7 @@
 #include <memory>
 
 #include <fstream>
+#include <set>
 #include "globals.h"
 
 using namespace arctic;
@@ -57,6 +58,7 @@ double g_distance_sq_to_nearest_actor = -1.0;
 TimeMode g_time_mode = kTimeNormal;
 
 VisualisationTime g_min_msg_display_duration = 50000;
+VisualisationTime g_min_actor_display_duration = 50000;
 
 std::stringstream g_log;
 
@@ -80,9 +82,8 @@ void UpdateTime() {
     if (g_time_mode == kTimeNormal) {
       time_diff = g_dt * g_speed;
     } else if (g_time_mode == kTimeAdaptive) {
-      Si64 shortest_delivery = INT64_MAX;
-      Ui64 latest_shortest_delivery_end = 0;
-      
+      VisualisationTime earliest_active_end = -1;
+
       for (size_t i = 0; i < Logs::GetLogMessages().size(); ++i) {
         MessageRec &m = g_messages[i];
         if (!g_pgseet->HaveCoord(m.from) || !g_pgseet->HaveCoord(m.to)) {
@@ -91,34 +92,30 @@ void UpdateTime() {
         if (VisualisationHelper::IsOnlyBirthActive() && VisualisationHelper::GetMessageColor(m.id) == Rgba(255, 255, 0)) {
           continue;
         }
-        {
-          VisualisationTime dispEnd = std::max(m.end, m.start + g_min_msg_display_duration);
-          if (m.start <= g_time_line.GetTime() && dispEnd >= g_time_line.GetTime()) {
-            Si64 delivery = dispEnd - m.start;
-            if (delivery < shortest_delivery && delivery > 0) {
-              shortest_delivery = delivery;
-              latest_shortest_delivery_end = dispEnd;
-            } else if (delivery == shortest_delivery) {
-              latest_shortest_delivery_end = std::max(latest_shortest_delivery_end, (Ui64)dispEnd);
-            }
+        VisualisationTime dispEnd = std::max(m.end, m.start + g_min_msg_display_duration);
+        if (m.start <= g_time_line.GetTime() && dispEnd >= g_time_line.GetTime()) {
+          if (earliest_active_end < 0 || dispEnd < earliest_active_end) {
+            earliest_active_end = dispEnd;
           }
         }
       }
-      
-      if (shortest_delivery == 0) {
-        shortest_delivery = 1;
-      }
-      if (shortest_delivery > 1000.0) {
-        shortest_delivery = 1000.0;
-      }
-      double desired_duration = 1000.0;
-      double duration = shortest_delivery;
-      double multiplier = duration/desired_duration;
-      time_diff = g_dt * g_speed * multiplier;
-      if (latest_shortest_delivery_end > 0) {
-        if (g_time_line.d_time_ + time_diff > latest_shortest_delivery_end + 1) {
-          time_diff = latest_shortest_delivery_end + 1 - g_time_line.d_time_;
+
+      if (earliest_active_end >= 0) {
+        double max_adaptive_speed = (double)g_min_msg_display_duration * 2.0;
+        double effective_speed = g_speed;
+        if (g_speed > 0) {
+          effective_speed = std::min(g_speed, max_adaptive_speed);
+        } else if (g_speed < 0) {
+          effective_speed = std::max(g_speed, -max_adaptive_speed);
         }
+        time_diff = g_dt * effective_speed;
+        if (g_speed > 0 && g_time_line.d_time_ + time_diff > earliest_active_end + 1) {
+          time_diff = earliest_active_end + 1 - g_time_line.d_time_;
+        } else if (g_speed < 0 && g_time_line.d_time_ + time_diff < earliest_active_end - 1) {
+          time_diff = earliest_active_end - 1 - g_time_line.d_time_;
+        }
+      } else {
+        time_diff = g_dt * g_speed;
       }
     }
     
@@ -495,7 +492,7 @@ void EasyMain() {
   g_font.LoadLetterBits(g_tiny_font_letters, 8, 8);
 
   Logs::ReadLogs("data/actors_trace_single.bin");
-  // Logs::ReadLogs("data/actors_trace.bin");
+  // // Logs::ReadLogs("data/actors_trace.bin");
   // Logs::ReadLogs("data/storage_start_err.log");
   VisualisationHelper::RecalcMessagesColor();
 
@@ -527,7 +524,7 @@ void EasyMain() {
     if (!g_pgseet->HaveCoord(i)) {
       a.visible_ = false;
     } else {
-      a.visible_ = Logs::IsAlife(i, g_time_line.GetTime());
+      a.visible_ = Logs::IsAlife(i, g_time_line.GetTime(), g_min_actor_display_duration);
       a.active_ = Logs::CheckActorActivity(i, g_time_line.GetTime());
       a.offset_ = g_pgseet->GetCoord(i);
       const std::map<ActorIdx, std::string_view>& idToType = Logs::GetActorIdToActorType();
@@ -566,6 +563,27 @@ void EasyMain() {
     dbg << "g_arrows.size: " << g_arrows.size() << std::endl;
     dbg << "maxTime: " << g_time_line.maxTime_ << std::endl;
     dbg << "coordedId count: " << g_pgseet->coordedId_.size() << std::endl;
+
+    {
+      size_t withBirth = 0;
+      for (ActorIdx id : g_pgseet->coordedId_) {
+        if (Logs::lifeTime_.count(id) && Logs::lifeTime_.at(id).first > 0) {
+          withBirth++;
+        }
+      }
+      dbg << "coordedId actors with birth > 0: " << withBirth << std::endl;
+      dbg << "coordedId actors with birth = 0 (always visible): "
+          << (g_pgseet->coordedId_.size() - withBirth) << std::endl;
+      dbg << "Sample coordedId actors with birth > 0:" << std::endl;
+      int cnt = 0;
+      for (ActorIdx id : g_pgseet->coordedId_) {
+        if (Logs::lifeTime_.count(id) && Logs::lifeTime_.at(id).first > 0 && cnt < 10) {
+          dbg << "  actor " << id << " birth=" << Logs::lifeTime_.at(id).first
+              << " death=" << Logs::lifeTime_.at(id).second << std::endl;
+          cnt++;
+        }
+      }
+    }
 
     size_t msgsWithCoord = 0;
     for (size_t i = 0; i < g_messages.size(); ++i) {
@@ -658,12 +676,32 @@ void EasyMain() {
       screen.Draw();
       ++g_update_frame;
       DrawLayers(g_pgseet);
+      {
+        static bool first_birth_logged = false;
+        static std::set<ActorIdx> prev_visible;
+        for (ActorIdx i = 0; i < g_actors.size(); ++i) {
+          if (!g_pgseet->HaveCoord(i)) continue;
+          bool now_visible = Logs::IsAlife(i, g_time_line.GetTime(), g_min_actor_display_duration);
+          if (now_visible && !prev_visible.count(i) && Logs::lifeTime_.count(i) && Logs::lifeTime_.at(i).first > 0) {
+            Vec2F screenPos = g_camera.WorldToScreen(Vec2F(g_actors[i].offset_));
+            std::ofstream dbg("/tmp/actor_births.txt", std::ios::app);
+            dbg << "BIRTH: actor " << i << " at time=" << g_time_line.GetTime()
+                << " world=(" << g_actors[i].offset_.x << "," << g_actors[i].offset_.y << ")"
+                << " screen=(" << (int)screenPos.x << "," << (int)screenPos.y << ")"
+                << " birth=" << Logs::lifeTime_.at(i).first
+                << " death=" << Logs::lifeTime_.at(i).second << std::endl;
+            first_birth_logged = true;
+          }
+          if (now_visible) prev_visible.insert(i);
+          else prev_visible.erase(i);
+        }
+      }
       for (ActorIdx i = 0; i < g_actors.size(); ++i) {
         if (!g_pgseet->HaveCoord(i)) {
           continue;
         }
         ActorRec &a = g_actors[i];
-        a.visible_ = Logs::IsAlife(i, g_time_line.GetTime());
+        a.visible_ = Logs::IsAlife(i, g_time_line.GetTime(), g_min_actor_display_duration);
         a.active_ = Logs::CheckActorActivity(i, g_time_line.GetTime());
         a.offset_ = g_pgseet->GetCoord(i);
         
