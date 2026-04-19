@@ -491,7 +491,8 @@ void EasyMain() {
   g_large_font.Load("data/arctic_one_bmf.fnt");
   g_font.LoadLetterBits(g_tiny_font_letters, 8, 8);
 
-  Logs::ReadLogs("data/actors_trace_single.bin");
+  // Logs::ReadLogs("data/actors_trace_single.bin");
+  Logs::ReadLogs("data/actors_trace_single_pointer.bin");
   // // Logs::ReadLogs("data/actors_trace.bin");
   // Logs::ReadLogs("data/storage_start_err.log");
   VisualisationHelper::RecalcMessagesColor();

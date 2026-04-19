@@ -12,6 +12,9 @@
 
 static constexpr uint32_t YTRA_MAGIC = 0x41525459;
 
+static constexpr uint32_t YTRA_VERSION_MIN = 1;
+static constexpr uint32_t YTRA_VERSION_MAX = 2;
+
 struct BinaryFileHeader {
   uint32_t magic;
   uint32_t version;
@@ -30,15 +33,20 @@ struct BinaryEvent {
   uint16_t extra;
   uint8_t  type;
   uint8_t  flags;
+  uint64_t handlePtr;
 };
 
-static_assert(sizeof(BinaryEvent) == 32);
+static_assert(sizeof(BinaryEvent) == 40);
+
+static constexpr size_t kBinaryEventSizeV1 = 32;
+static constexpr size_t kBinaryEventSizeV2 = 40;
 
 enum BinaryEventType : uint8_t {
   SendLocal    = 0,
   ReceiveLocal = 1,
   New          = 2,
   Die          = 3,
+  ForwardLocal = 4,
 };
 
 class BinaryLogReader {
@@ -60,6 +68,13 @@ public:
       throw std::runtime_error("BinaryLogReader: bad magic");
     }
 
+    if (header_.version < YTRA_VERSION_MIN || header_.version > YTRA_VERSION_MAX) {
+      std::ostringstream oss;
+      oss << "BinaryLogReader: unsupported trace version " << header_.version
+          << " (supported range: " << YTRA_VERSION_MIN << ".." << YTRA_VERSION_MAX << ")";
+      throw std::runtime_error(oss.str());
+    }
+
     size_t offset = sizeof(BinaryFileHeader);
     size_t dictEnd = offset + header_.headerSize;
     if (dictEnd > data.size()) {
@@ -79,14 +94,24 @@ public:
     }
 
     size_t eventsOffset = sizeof(BinaryFileHeader) + header_.headerSize;
-    size_t eventsEnd = eventsOffset + header_.eventCount * sizeof(BinaryEvent);
+    const size_t recordSize = (header_.version == 1) ? kBinaryEventSizeV1 : kBinaryEventSizeV2;
+    size_t eventsEnd = eventsOffset + header_.eventCount * recordSize;
     if (eventsEnd > data.size()) {
       throw std::runtime_error("BinaryLogReader: truncated events section");
     }
 
-    events_.resize(header_.eventCount);
-    std::memcpy(events_.data(), data.data() + eventsOffset,
-                header_.eventCount * sizeof(BinaryEvent));
+    events_.assign(header_.eventCount, BinaryEvent{});
+    if (header_.version == 1) {
+      for (uint64_t i = 0; i < header_.eventCount; ++i) {
+        BinaryEvent& ev = events_[i];
+        std::memcpy(&ev, data.data() + eventsOffset + i * kBinaryEventSizeV1,
+                    kBinaryEventSizeV1);
+        ev.handlePtr = 0;
+      }
+    } else {
+      std::memcpy(events_.data(), data.data() + eventsOffset,
+                  header_.eventCount * kBinaryEventSizeV2);
+    }
   }
 
   static const BinaryFileHeader& GetHeader() { return header_; }

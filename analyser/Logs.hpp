@@ -90,6 +90,8 @@ public:
     std::string_view threadName;
     uint32_t auxTypeId = 0;
 
+    uint64_t handlePtr = 0;
+
     // FK for the message array
     Si64 message_idx = -1;
     
@@ -128,6 +130,8 @@ public:
     
     // FKs to child messages
     std::vector<Si64> child_msg_idxs;
+
+    std::vector<std::pair<VisualisationTime, ActorIdx>> forwardHops;
     
     LogMessage() = default;
     LogMessage(const LogMessage&) = default;
@@ -139,6 +143,26 @@ public:
     
     LogMessage(ActorIdx to, ActorIdx from, VisualisationTime start, VisualisationTime end, std::string_view message, size_t id) :
     to(to), from(from), start(start), end(end), message(message), message_idx(id) {}
+  };
+
+  struct ForwardEvent {
+    VisualisationTime time;
+    uint64_t oldPtr;
+    uint64_t newPtr;
+    uint32_t aux;
+    ActorIdx recipient;
+    uint16_t extra;
+
+    bool operator==(const ForwardEvent&) const = default;
+  };
+
+  struct MatchStats {
+    size_t forwardCount = 0;
+    size_t forwardMatched = 0;
+    size_t handleMatched = 0;
+    size_t fallbackMatched = 0;
+    size_t unmatchedReceives = 0;
+    size_t unmatchedSends = 0;
   };
   
   static void CompressTimelineGaps() {
@@ -346,7 +370,19 @@ public:
         pll.threadId = threadIdStrings[ev.flags];
         pll.threadName = threadIdStrings[ev.flags];
 
+        pll.handlePtr = ev.handlePtr;
+
         parsedLogLines_.push_back(pll);
+
+      } else if (ev.type == BinaryEventType::ForwardLocal) {
+        ForwardEvent fe;
+        fe.time = static_cast<VisualisationTime>(ev.timestamp);
+        fe.oldPtr = ev.handlePtr;
+        fe.newPtr = ev.actor1;
+        fe.aux = ev.aux;
+        fe.extra = ev.extra;
+        fe.recipient = getOrCreateActorIdx(ev.actor2);
+        forwardEvents_.push_back(fe);
 
       } else if (ev.type == BinaryEventType::New || ev.type == BinaryEventType::Die) {
         ActorIdx actorIdx = getOrCreateActorIdx(ev.actor1);
@@ -377,6 +413,11 @@ public:
                 return a.time < b.time;
               });
 
+    std::sort(forwardEvents_.begin(), forwardEvents_.end(),
+              [](const ForwardEvent& a, const ForwardEvent& b) {
+                return a.time < b.time;
+              });
+
     CreateLogMessagesBinary();
 
     {
@@ -394,6 +435,13 @@ public:
       dbg << "NewDieLogLines: " << newDieLogLines_.size() << std::endl;
       dbg << "LogMessages (correlated): " << logMessages_.size() << std::endl;
       dbg << "Unique actors: " << maxActorId_ << std::endl;
+
+      dbg << "Forward events (total): " << matchStats_.forwardCount << std::endl;
+      dbg << "Forward events (matched to pending Send): " << matchStats_.forwardMatched << std::endl;
+      dbg << "Matches via HandlePtr: " << matchStats_.handleMatched << std::endl;
+      dbg << "Matches via legacy fallback (handlePtr=0): " << matchStats_.fallbackMatched << std::endl;
+      dbg << "Unmatched Receives: " << matchStats_.unmatchedReceives << std::endl;
+      dbg << "Unmatched Sends at end of pass: " << matchStats_.unmatchedSends << std::endl;
 
       if (!logMessages_.empty()) {
         VisualisationTime minStart = logMessages_[0].start, maxEnd = logMessages_[0].end;
@@ -501,64 +549,141 @@ public:
   }
 
   static void CreateLogMessagesBinary() {
-    using CorrKey = std::tuple<ActorIdx, ActorIdx, uint32_t>;
-    std::map<CorrKey, std::queue<size_t>> sendQueues;
+    static const std::string emptyMsgType;
 
-    // Fallback queue for scheduler-routed sends (from is a thread/pool actor),
-    // keyed by {to, aux}. Used when the receiving thread differs from the sending
-    // thread (common for scheduled self-pings), so the normal {from,to,aux} key fails.
-    using FallbackKey = std::pair<ActorIdx, uint32_t>;
+    std::unordered_map<uint64_t, std::deque<size_t>> pendingSendByPtr;
+    std::unordered_map<size_t, std::vector<std::pair<VisualisationTime, ActorIdx>>> hopsBySendIdx;
+
+    using FallbackKey = std::tuple<ActorIdx, ActorIdx, uint32_t>;
     std::map<FallbackKey, std::queue<size_t>> fallbackSendQueues;
+    using ThreadFallbackKey = std::pair<ActorIdx, uint32_t>;
+    std::map<ThreadFallbackKey, std::queue<size_t>> threadFallbackQueues;
 
     std::set<ActorIdx> threadActorIdSet;
     for (auto& [idx, name] : threadActorIds_) {
       threadActorIdSet.insert(idx);
     }
 
-    auto makeMsg = [&](ParsedLogLine& sendLine, ParsedLogLine& recvLine,
-                       ActorIdx from, ActorIdx to) {
-      static const std::string emptyMsgType;
+    matchStats_ = MatchStats{};
+    matchStats_.forwardCount = forwardEvents_.size();
+
+    auto makeMsg = [&](size_t sendIdx, ParsedLogLine& recvLine) {
+      ParsedLogLine& sendLine = parsedLogLines_[sendIdx];
       LogMessage msg;
-      msg.from = from;
-      msg.to = to;
+      msg.from = sendLine.from;
+      msg.to = sendLine.to;
       msg.start = sendLine.time;
       msg.end = recvLine.time;
       msg.message = sendLine.message;
       msg.messageType = recvLine.messageType.value_or(std::string_view(emptyMsgType));
       msg.message_idx = logMessages_.size();
+      auto hopIt = hopsBySendIdx.find(sendIdx);
+      if (hopIt != hopsBySendIdx.end()) {
+        msg.forwardHops = std::move(hopIt->second);
+        hopsBySendIdx.erase(hopIt);
+      }
       sendLine.message_idx = msg.message_idx;
       recvLine.message_idx = msg.message_idx;
       logMessages_.push_back(msg);
     };
 
+    struct StreamItem {
+      VisualisationTime time;
+      uint8_t kind;
+      size_t idx;
+    };
+    std::vector<StreamItem> stream;
+    stream.reserve(parsedLogLines_.size() + forwardEvents_.size());
+
     for (size_t i = 0; i < parsedLogLines_.size(); ++i) {
-      ParsedLogLine& pll = parsedLogLines_[i];
-      CorrKey key = {pll.from, pll.to, pll.auxTypeId};
+      const ParsedLogLine& pll = parsedLogLines_[i];
+      uint8_t kind = 3;
+      if (pll.type == "Send") kind = 0;
+      else if (pll.type == "Receive") kind = 2;
+      else continue;
+      stream.push_back({pll.time, kind, i});
+    }
+    for (size_t i = 0; i < forwardEvents_.size(); ++i) {
+      stream.push_back({forwardEvents_[i].time, 1, i});
+    }
 
-      if (pll.type == "Send") {
-        sendQueues[key].push(i);
-        if (threadActorIdSet.count(pll.from)) {
-          fallbackSendQueues[{pll.to, pll.auxTypeId}].push(i);
-        }
-      } else if (pll.type == "Receive") {
-        CorrKey recvKey = {pll.from, pll.to, pll.auxTypeId};
-        auto it = sendQueues.find(recvKey);
-        if (it != sendQueues.end() && !it->second.empty()) {
-          size_t sendIdx = it->second.front();
-          it->second.pop();
-          ParsedLogLine& sendLine = parsedLogLines_[sendIdx];
-          makeMsg(sendLine, pll, sendLine.from, sendLine.to);
-        } else if (threadActorIdSet.count(pll.from)) {
+    std::stable_sort(stream.begin(), stream.end(),
+      [](const StreamItem& a, const StreamItem& b) {
+        if (a.time != b.time) return a.time < b.time;
+        return a.kind < b.kind;
+      });
 
-          auto fit = fallbackSendQueues.find({pll.to, pll.auxTypeId});
-          if (fit != fallbackSendQueues.end() && !fit->second.empty()) {
-            size_t sendIdx = fit->second.front();
-            fit->second.pop();
-            ParsedLogLine& sendLine = parsedLogLines_[sendIdx];
-            makeMsg(sendLine, pll, pll.to, pll.to);
+    size_t forwardDropped = 0;
+
+    for (const StreamItem& item : stream) {
+      if (item.kind == 0) {
+        ParsedLogLine& pll = parsedLogLines_[item.idx];
+        if (pll.handlePtr != 0) {
+          pendingSendByPtr[pll.handlePtr].push_back(item.idx);
+        } else {
+          fallbackSendQueues[{pll.from, pll.to, pll.auxTypeId}].push(item.idx);
+          if (threadActorIdSet.count(pll.from)) {
+            threadFallbackQueues[{pll.to, pll.auxTypeId}].push(item.idx);
           }
         }
+      } else if (item.kind == 2) {
+        ParsedLogLine& pll = parsedLogLines_[item.idx];
+        if (pll.handlePtr != 0) {
+          auto it = pendingSendByPtr.find(pll.handlePtr);
+          if (it != pendingSendByPtr.end() && !it->second.empty()) {
+            size_t sendIdx = it->second.front();
+            it->second.pop_front();
+            if (it->second.empty()) pendingSendByPtr.erase(it);
+            makeMsg(sendIdx, pll);
+            matchStats_.handleMatched++;
+          } else {
+            matchStats_.unmatchedReceives++;
+          }
+        } else {
+          FallbackKey key{pll.from, pll.to, pll.auxTypeId};
+          auto it = fallbackSendQueues.find(key);
+          if (it != fallbackSendQueues.end() && !it->second.empty()) {
+            size_t sendIdx = it->second.front();
+            it->second.pop();
+            makeMsg(sendIdx, pll);
+            matchStats_.fallbackMatched++;
+          } else if (threadActorIdSet.count(pll.from)) {
+            auto fit = threadFallbackQueues.find({pll.to, pll.auxTypeId});
+            if (fit != threadFallbackQueues.end() && !fit->second.empty()) {
+              size_t sendIdx = fit->second.front();
+              fit->second.pop();
+              makeMsg(sendIdx, pll);
+              matchStats_.fallbackMatched++;
+            } else {
+              matchStats_.unmatchedReceives++;
+            }
+          } else {
+            matchStats_.unmatchedReceives++;
+          }
+        }
+      } else if (item.kind == 1) {
+        const ForwardEvent& fe = forwardEvents_[item.idx];
+        auto it = pendingSendByPtr.find(fe.oldPtr);
+        if (it != pendingSendByPtr.end() && !it->second.empty()) {
+          size_t sendIdx = it->second.front();
+          it->second.pop_front();
+          if (it->second.empty()) pendingSendByPtr.erase(it);
+          pendingSendByPtr[fe.newPtr].push_back(sendIdx);
+          hopsBySendIdx[sendIdx].push_back({fe.time, fe.recipient});
+          matchStats_.forwardMatched++;
+        } else {
+          forwardDropped++;
+        }
       }
+    }
+
+    for (auto& [p, q] : pendingSendByPtr) matchStats_.unmatchedSends += q.size();
+    for (auto& [k, q] : fallbackSendQueues) matchStats_.unmatchedSends += q.size();
+
+    if (forwardDropped > 0) {
+      std::ofstream dbg("/tmp/actor_debug_log.txt", std::ios::app);
+      dbg << "Forward events without matching pending Send: " << forwardDropped << std::endl;
+      dbg.close();
     }
   }
 
@@ -847,6 +972,9 @@ public:
     binStrings_.clear();
     binActorIdMap_.clear();
     newActorTypeHints_.clear();
+
+    forwardEvents_.clear();
+    matchStats_ = MatchStats{};
   }
   
   static bool IsAlife(ActorIdx id, VisualisationTime time, VisualisationTime minDuration = 0) {
@@ -1262,6 +1390,9 @@ public:
   static std::deque<std::string> binStrings_;
   static std::map<uint64_t, ActorIdx> binActorIdMap_;
   static std::map<ActorIdx, std::string_view> newActorTypeHints_;
+
+  static std::vector<ForwardEvent> forwardEvents_;
+  static MatchStats matchStats_;
 };
 
 std::ostream& operator<<(std::ostream& os, const Logs::LogMessage& lm);
