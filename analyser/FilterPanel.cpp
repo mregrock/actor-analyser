@@ -10,6 +10,7 @@
 
 #include <algorithm>
 #include <map>
+#include <set>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -29,9 +30,18 @@ struct Group {
   bool expanded = false;
 };
 
+enum class HeaderKind {
+  None = 0,
+  HideSilentAll = 1,
+  HideInactiveWindow = 2,
+};
+
+constexpr VisualisationTime kInactiveWindowUs = 500000;
+
 struct Row {
   int groupIdx = -1;
   int typeIdx = -1;
+  HeaderKind header = HeaderKind::None;
   Vec2Si32 min;
   Vec2Si32 max;
 };
@@ -40,6 +50,27 @@ std::map<std::string_view, bool> s_typeVisible;
 std::vector<Group> s_groups;
 std::vector<Row> s_rows;
 bool s_panelVisible = true;
+
+bool s_hideSilentAll = false;
+bool s_hideInactiveWindow = false;
+std::unordered_map<ActorIdx, std::vector<VisualisationTime>> s_actorEventTimes;
+size_t s_silentWholeTraceCount = 0;
+
+bool IsSilentWholeTrace(ActorIdx id) {
+  auto it = s_actorEventTimes.find(id);
+  return it == s_actorEventTimes.end() || it->second.empty();
+}
+
+bool IsInactiveInWindow(ActorIdx id, VisualisationTime t) {
+  auto it = s_actorEventTimes.find(id);
+  if (it == s_actorEventTimes.end() || it->second.empty()) return true;
+  const auto& times = it->second;
+  VisualisationTime lo = t - kInactiveWindowUs;
+  VisualisationTime hi = t + kInactiveWindowUs;
+  auto low = std::lower_bound(times.begin(), times.end(), lo);
+  if (low == times.end()) return true;
+  return *low > hi;
+}
 
 std::string_view ExtractPrefix(std::string_view s) {
   if (s.empty()) return s;
@@ -88,6 +119,8 @@ void Init() {
   s_typeVisible.clear();
   s_groups.clear();
   s_rows.clear();
+  s_actorEventTimes.clear();
+  s_silentWholeTraceCount = 0;
 
   std::map<std::string_view, Group> byPrefix;
   for (const auto& [type, ids] : Logs::GetActorTypeToActorId()) {
@@ -108,6 +141,23 @@ void Init() {
               if (a.totalActors != b.totalActors) return a.totalActors > b.totalActors;
               return a.prefix < b.prefix;
             });
+
+  const auto& msgs = Logs::GetLogMessages();
+  for (const auto& m : msgs) {
+    s_actorEventTimes[m.from].push_back(m.start);
+    if (m.to != m.from) {
+      s_actorEventTimes[m.to].push_back(m.end);
+    }
+  }
+  for (auto& [id, times] : s_actorEventTimes) {
+    std::sort(times.begin(), times.end());
+  }
+
+  ActorIdx maxId = Logs::GetMaxActorId();
+  s_silentWholeTraceCount = 0;
+  for (ActorIdx id = 0; id <= maxId; ++id) {
+    if (IsSilentWholeTrace(id)) s_silentWholeTraceCount++;
+  }
 }
 
 bool IsActorTypeVisibleForId(ActorIdx id) {
@@ -117,6 +167,13 @@ bool IsActorTypeVisibleForId(ActorIdx id) {
   auto vis = s_typeVisible.find(it->second);
   if (vis == s_typeVisible.end()) return true;
   return vis->second;
+}
+
+bool IsActorVisible(ActorIdx id, VisualisationTime curTime) {
+  if (!IsActorTypeVisibleForId(id)) return false;
+  if (s_hideSilentAll && IsSilentWholeTrace(id)) return false;
+  if (s_hideInactiveWindow && IsInactiveInWindow(id, curTime)) return false;
+  return true;
 }
 
 void Draw() {
@@ -130,7 +187,9 @@ void Draw() {
   const int colWidth = 260;
   const int panelRightPad = 8;
   const int panelTopPad = 8;
-  const int headerHeight = 22;
+  const int titleHeight = 22;
+  const int silentRowsHeight = lineHeight * 2 + 4;
+  const int headerHeight = titleHeight + silentRowsHeight;
   const int indent = 16;
 
   s_rows.clear();
@@ -154,14 +213,45 @@ void Draw() {
   int visibleTypes = 0;
   for (auto& [t, v] : s_typeVisible) if (v) ++visibleTypes;
   snprintf(buf, sizeof(buf),
-           "Filter by actor type [%d/%zu]  LMB: toggle  [+/-]: expand  RMB: all/none  H: hide",
+           "Filter by actor type [%d/%zu]  LMB: toggle  RMB: all/none  H: hide",
            visibleTypes, s_typeVisible.size());
   g_font.Draw(sprite, buf, x0 + 6, y1 - 4,
               kTextOriginTop, kTextAlignmentLeft,
               kDrawBlendingModeColorize, kFilterNearest,
               Rgba(255, 255, 255));
 
-  int cursorY = y1 - headerHeight;
+  int cursorY = y1 - titleHeight;
+
+  {
+    char mark = s_hideSilentAll ? 'x' : ' ';
+    Rgba color = s_hideSilentAll ? Rgba(180, 255, 180) : Rgba(180, 180, 180);
+    snprintf(buf, sizeof(buf), "[%c] Hide silent (whole trace)  (%zu)",
+             mark, s_silentWholeTraceCount);
+    Row r;
+    r.header = HeaderKind::HideSilentAll;
+    r.min = Vec2Si32(x0 + 4, cursorY - lineHeight);
+    r.max = Vec2Si32(x0 + panelWidth - 4, cursorY);
+    s_rows.push_back(r);
+    g_font.Draw(sprite, buf, x0 + 6, cursorY,
+                kTextOriginTop, kTextAlignmentLeft,
+                kDrawBlendingModeColorize, kFilterNearest, color);
+    cursorY -= lineHeight;
+  }
+  {
+    char mark = s_hideInactiveWindow ? 'x' : ' ';
+    Rgba color = s_hideInactiveWindow ? Rgba(180, 255, 180) : Rgba(180, 180, 180);
+    double windowMs = (double)kInactiveWindowUs / 1000.0;
+    snprintf(buf, sizeof(buf), "[%c] Hide inactive in +/-%.0fms window", mark, windowMs);
+    Row r;
+    r.header = HeaderKind::HideInactiveWindow;
+    r.min = Vec2Si32(x0 + 4, cursorY - lineHeight);
+    r.max = Vec2Si32(x0 + panelWidth - 4, cursorY);
+    s_rows.push_back(r);
+    g_font.Draw(sprite, buf, x0 + 6, cursorY,
+                kTextOriginTop, kTextAlignmentLeft,
+                kDrawBlendingModeColorize, kFilterNearest, color);
+    cursorY -= lineHeight + 4;
+  }
   for (int gi = 0; gi < (int)s_groups.size(); ++gi) {
     Group& g = s_groups[gi];
 
@@ -259,28 +349,37 @@ void HandleInput() {
              && !IsKeyDown(kKeyControl) && !IsKeyDown(kKeyLeftControl);
 
   if (hitRow && IsKeyDownward(kKeyMouseLeft) && plain) {
-    Group& g = s_groups[hitRow->groupIdx];
-    if (hitRow->typeIdx < 0) {
-      bool multi = g.types.size() > 1;
-      int expanderWidth = 28;
-      if (multi && m.x <= hitRow->min.x + expanderWidth) {
-        g.expanded = !g.expanded;
-      } else {
-        ToggleGroup(g);
-      }
+    if (hitRow->header == HeaderKind::HideSilentAll) {
+      s_hideSilentAll = !s_hideSilentAll;
+    } else if (hitRow->header == HeaderKind::HideInactiveWindow) {
+      s_hideInactiveWindow = !s_hideInactiveWindow;
     } else {
-      std::string_view t = g.types[hitRow->typeIdx];
-      auto it = s_typeVisible.find(t);
-      if (it != s_typeVisible.end()) {
-        it->second = !it->second;
+      Group& g = s_groups[hitRow->groupIdx];
+      if (hitRow->typeIdx < 0) {
+        bool multi = g.types.size() > 1;
+        int expanderWidth = 28;
+        if (multi && m.x <= hitRow->min.x + expanderWidth) {
+          g.expanded = !g.expanded;
+        } else {
+          ToggleGroup(g);
+        }
+      } else {
+        std::string_view t = g.types[hitRow->typeIdx];
+        auto it = s_typeVisible.find(t);
+        if (it != s_typeVisible.end()) {
+          it->second = !it->second;
+        }
       }
     }
   }
 
   if (overPanel && IsKeyDownward(kKeyMouseRight)) {
-    bool allOn = true;
-    for (auto& [t, v] : s_typeVisible) { if (!v) { allOn = false; break; } }
-    for (auto& [t, v] : s_typeVisible) v = !allOn;
+    bool onlyHeaderHit = hitRow && hitRow->header != HeaderKind::None;
+    if (!onlyHeaderHit) {
+      bool allOn = true;
+      for (auto& [t, v] : s_typeVisible) { if (!v) { allOn = false; break; } }
+      for (auto& [t, v] : s_typeVisible) v = !allOn;
+    }
   }
 }
 

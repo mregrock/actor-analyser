@@ -29,6 +29,8 @@
 #include "DebugHud.hpp"
 #include "WorldRenderer.hpp"
 #include "InputController.hpp"
+#include "Tooltip.hpp"
+#include "Highlight.hpp"
 
 #include <iostream>
 #include <memory>
@@ -85,6 +87,8 @@ void EasyMain() {
   VisualisationHelper::RecalcMessagesColor();
 
   FilterPanel::Init();
+  Tooltip::Init();
+  Highlight::Init();
 
   g_pgseet = new GreedSeet(std::pair(ScreenSize().x, ScreenSize().y),
                   std::max(static_cast<ActorIdx>(1), 9000 / Logs::GetMaxActorId()));
@@ -290,7 +294,7 @@ void EasyMain() {
         }
         ActorRec &a = g_actors[i];
         a.visible_ = Logs::IsAlife(i, g_time_line.GetTime(), g_min_actor_display_duration)
-                     && FilterPanel::IsActorTypeVisibleForId(i);
+                     && FilterPanel::IsActorVisible(i, g_time_line.GetTime());
         a.active_ = Logs::CheckActorActivity(i, g_time_line.GetTime());
         a.offset_ = g_pgseet->GetCoord(i);
 
@@ -303,7 +307,8 @@ void EasyMain() {
         if (!g_pgseet->HaveCoord(m.from) || !g_pgseet->HaveCoord(m.to)) {
           continue;
         }
-        if (!FilterPanel::IsActorTypeVisibleForId(m.from) || !FilterPanel::IsActorTypeVisibleForId(m.to)) {
+        if (!FilterPanel::IsActorVisible(m.from, g_time_line.GetTime()) ||
+            !FilterPanel::IsActorVisible(m.to, g_time_line.GetTime())) {
           continue;
         }
 
@@ -344,9 +349,18 @@ void EasyMain() {
                   kTextOriginTop,  kTextAlignmentLeft,
                   kDrawBlendingModeColorize,  kFilterNearest,
                   Rgba(255, 0, 0));
+
+      if (g_mouse_nearest_actor_idx >= 0 && g_distance_sq_to_nearest_actor == 0.0) {
+        Tooltip::DrawActorTooltip(g_mouse_nearest_actor_idx, curTime);
+      } else if (g_mouse_nearest_message_idx >= 0 && g_distance_sq_to_nearest_message >= 0 &&
+                 g_distance_sq_to_nearest_message < 100.0) {
+        Tooltip::DrawMessageTooltip((size_t)g_mouse_nearest_message_idx);
+      }
     }
 
-    DebugHud::Draw();
+    if (!VisualisationHelper::IsTraceMode()) {
+      DebugHud::Draw();
+    }
     ShowFrame();
   }
 }

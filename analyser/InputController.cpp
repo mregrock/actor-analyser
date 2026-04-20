@@ -157,12 +157,19 @@ void UpdateCamera() {
   if (IsKeyDownward(kKeyMouseLeft) && (IsKeyDown(kKeyControl) || IsKeyDown(kKeyLeftControl))) {
     if (g_mouse_nearest_message_idx >= 0 && g_distance_sq_to_nearest_message < 25.0) {
       g_trace_screen.CreateMessageTraces(g_mouse_nearest_message_idx);
-      g_camera.SetOffset(Vec2Si32(0, 0));
       VisualisationHelper::SwitchTraceMode();
     }
   }
   if (IsKeyDownward(kKeyF1)) {
     DebugHud::Toggle();
+  }
+  if (IsKeyDownward(kKeyC)) {
+    if (g_mouse_nearest_message_idx >= 0 &&
+        g_distance_sq_to_nearest_message >= 0 &&
+        g_distance_sq_to_nearest_message < 100.0) {
+      g_trace_screen.CreateMessageTraces((uint64_t)g_mouse_nearest_message_idx);
+      VisualisationHelper::SwitchTraceMode();
+    }
   }
 }
 

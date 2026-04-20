@@ -127,7 +127,9 @@ public:
     std::string_view message;
     std::string_view messageType;
     size_t message_idx;
-    
+
+    uint64_t handlePtr = 0;
+
     // FKs to child messages
     std::vector<Si64> child_msg_idxs;
 
@@ -583,6 +585,7 @@ public:
       msg.message = sendLine.message;
       msg.messageType = recvLine.messageType.value_or(std::string_view(emptyMsgType));
       msg.message_idx = logMessages_.size();
+      msg.handlePtr = sendLine.handlePtr;
       auto hopIt = hopsBySendIdx.find(sendIdx);
       if (hopIt != hopsBySendIdx.end()) {
         msg.forwardHops = std::move(hopIt->second);
