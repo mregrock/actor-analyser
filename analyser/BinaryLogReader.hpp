@@ -12,8 +12,8 @@
 
 static constexpr uint32_t YTRA_MAGIC = 0x41525459;
 
-static constexpr uint32_t YTRA_VERSION_MIN = 3;
-static constexpr uint32_t YTRA_VERSION_MAX = 3;
+static constexpr uint32_t YTRA_VERSION_MIN = 4;
+static constexpr uint32_t YTRA_VERSION_MAX = 4;
 
 struct BinaryFileHeader {
   uint32_t magic;
@@ -26,20 +26,20 @@ struct BinaryFileHeader {
 
 static_assert(sizeof(BinaryFileHeader) == 32);
 
-struct __attribute__((packed)) BinaryEvent {
-  uint64_t actor1;
-  uint64_t actor2;
-  uint64_t handlePtr;
-  uint32_t deltaUs;
-  uint32_t aux;
-  uint16_t extra;
-  uint8_t  type;
-  uint8_t  flags;
+struct BinaryEvent {
+  uint64_t actor1;      // offset 0
+  uint64_t actor2;      // offset 8
+  uint32_t handleHash;  // offset 16 (replaces v3 handlePtr, now 32-bit)
+  uint32_t deltaUs;     // offset 20
+  uint32_t aux;         // offset 24 (MessageType)
+  uint16_t extra;       // offset 28 (ActivityIndex)
+  uint8_t  type;        // offset 30
+  uint8_t  flags;       // offset 31 (ThreadIdx)
 };
 
-static_assert(sizeof(BinaryEvent) == 36);
+static_assert(sizeof(BinaryEvent) == 32);
 
-static constexpr size_t kBinaryEventSizeV3 = 36;
+static constexpr size_t kBinaryEventSizeV4 = 32;
 
 enum BinaryEventType : uint8_t {
   SendLocal    = 0,
@@ -75,7 +75,7 @@ public:
       if (YTRA_VERSION_MIN != YTRA_VERSION_MAX) {
         oss << ".." << YTRA_VERSION_MAX;
       }
-      oss << "). Legacy v1/v2 traces are no longer supported.";
+      oss << "). Legacy v1/v2/v3 traces are no longer supported.";
       throw std::runtime_error(oss.str());
     }
 
@@ -98,14 +98,14 @@ public:
     }
 
     size_t eventsOffset = sizeof(BinaryFileHeader) + header_.headerSize;
-    size_t eventsEnd = eventsOffset + header_.eventCount * kBinaryEventSizeV3;
+    size_t eventsEnd = eventsOffset + header_.eventCount * kBinaryEventSizeV4;
     if (eventsEnd > data.size()) {
       throw std::runtime_error("BinaryLogReader: truncated events section");
     }
 
     events_.assign(header_.eventCount, BinaryEvent{});
     std::memcpy(events_.data(), data.data() + eventsOffset,
-                header_.eventCount * kBinaryEventSizeV3);
+                header_.eventCount * kBinaryEventSizeV4);
   }
 
   static const BinaryFileHeader& GetHeader() { return header_; }

@@ -90,7 +90,7 @@ public:
     std::string_view threadName;
     uint32_t auxTypeId = 0;
 
-    uint64_t handlePtr = 0;
+    uint32_t handleHash = 0;
 
     // FK for the message array
     Si64 message_idx = -1;
@@ -128,7 +128,7 @@ public:
     std::string_view messageType;
     size_t message_idx;
 
-    uint64_t handlePtr = 0;
+    uint32_t handleHash = 0;
 
     // FKs to child messages
     std::vector<Si64> child_msg_idxs;
@@ -149,8 +149,8 @@ public:
 
   struct ForwardEvent {
     VisualisationTime time;
-    uint64_t oldPtr;
-    uint64_t newPtr;
+    uint32_t oldHash;
+    uint32_t newHash;
     uint32_t aux;
     ActorIdx recipient;
     uint16_t extra;
@@ -376,15 +376,15 @@ public:
         pll.threadId = threadIdStrings[ev.flags];
         pll.threadName = threadIdStrings[ev.flags];
 
-        pll.handlePtr = ev.handlePtr;
+        pll.handleHash = ev.handleHash;
 
         parsedLogLines_.push_back(pll);
 
       } else if (ev.type == BinaryEventType::ForwardLocal) {
         ForwardEvent fe;
         fe.time = static_cast<VisualisationTime>(absTs(ev.deltaUs));
-        fe.oldPtr = ev.handlePtr;
-        fe.newPtr = ev.actor1;
+        fe.oldHash = ev.handleHash;
+        fe.newHash = static_cast<uint32_t>(ev.actor1);
         fe.aux = ev.aux;
         fe.extra = ev.extra;
         fe.recipient = getOrCreateActorIdx(ev.actor2);
@@ -446,8 +446,8 @@ public:
 
       dbg << "Forward events (total): " << matchStats_.forwardCount << std::endl;
       dbg << "Forward events (matched to pending Send): " << matchStats_.forwardMatched << std::endl;
-      dbg << "Matches via HandlePtr: " << matchStats_.handleMatched << std::endl;
-      dbg << "Matches via legacy fallback (handlePtr=0): " << matchStats_.fallbackMatched << std::endl;
+      dbg << "Matches via HandleHash+Aux: " << matchStats_.handleMatched << std::endl;
+      dbg << "Matches via legacy fallback (handleHash=0): " << matchStats_.fallbackMatched << std::endl;
       dbg << "Unmatched Receives: " << matchStats_.unmatchedReceives << std::endl;
       dbg << "Unmatched Sends at end of pass: " << matchStats_.unmatchedSends << std::endl;
 
@@ -559,7 +559,15 @@ public:
   static void CreateLogMessagesBinary() {
     static const std::string emptyMsgType;
 
-    std::unordered_map<uint64_t, std::deque<size_t>> pendingSendByPtr;
+    // Composite key: (handleHash, aux/MessageType). Aux adds entropy,
+    // lowers collision rate. FIFO per key matches v3 behaviour.
+    using HandleKey = std::pair<uint32_t, uint32_t>;
+    struct HandleKeyHash {
+      size_t operator()(const HandleKey& k) const noexcept {
+        return ((size_t)k.first << 32) ^ (size_t)k.second ^ ((size_t)k.second << 16);
+      }
+    };
+    std::unordered_map<HandleKey, std::deque<size_t>, HandleKeyHash> pendingSendByKey;
     std::unordered_map<size_t, std::vector<std::pair<VisualisationTime, ActorIdx>>> hopsBySendIdx;
 
     using FallbackKey = std::tuple<ActorIdx, ActorIdx, uint32_t>;
@@ -585,7 +593,7 @@ public:
       msg.message = sendLine.message;
       msg.messageType = recvLine.messageType.value_or(std::string_view(emptyMsgType));
       msg.message_idx = logMessages_.size();
-      msg.handlePtr = sendLine.handlePtr;
+      msg.handleHash = sendLine.handleHash;
       auto hopIt = hopsBySendIdx.find(sendIdx);
       if (hopIt != hopsBySendIdx.end()) {
         msg.forwardHops = std::move(hopIt->second);
@@ -627,8 +635,8 @@ public:
     for (const StreamItem& item : stream) {
       if (item.kind == 0) {
         ParsedLogLine& pll = parsedLogLines_[item.idx];
-        if (pll.handlePtr != 0) {
-          pendingSendByPtr[pll.handlePtr].push_back(item.idx);
+        if (pll.handleHash != 0) {
+          pendingSendByKey[{pll.handleHash, pll.auxTypeId}].push_back(item.idx);
         } else {
           fallbackSendQueues[{pll.from, pll.to, pll.auxTypeId}].push(item.idx);
           if (threadActorIdSet.count(pll.from)) {
@@ -637,12 +645,13 @@ public:
         }
       } else if (item.kind == 2) {
         ParsedLogLine& pll = parsedLogLines_[item.idx];
-        if (pll.handlePtr != 0) {
-          auto it = pendingSendByPtr.find(pll.handlePtr);
-          if (it != pendingSendByPtr.end() && !it->second.empty()) {
+        if (pll.handleHash != 0) {
+          HandleKey key{pll.handleHash, pll.auxTypeId};
+          auto it = pendingSendByKey.find(key);
+          if (it != pendingSendByKey.end() && !it->second.empty()) {
             size_t sendIdx = it->second.front();
             it->second.pop_front();
-            if (it->second.empty()) pendingSendByPtr.erase(it);
+            if (it->second.empty()) pendingSendByKey.erase(it);
             makeMsg(sendIdx, pll);
             matchStats_.handleMatched++;
           } else {
@@ -672,12 +681,13 @@ public:
         }
       } else if (item.kind == 1) {
         const ForwardEvent& fe = forwardEvents_[item.idx];
-        auto it = pendingSendByPtr.find(fe.oldPtr);
-        if (it != pendingSendByPtr.end() && !it->second.empty()) {
+        HandleKey oldKey{fe.oldHash, fe.aux};
+        auto it = pendingSendByKey.find(oldKey);
+        if (it != pendingSendByKey.end() && !it->second.empty()) {
           size_t sendIdx = it->second.front();
           it->second.pop_front();
-          if (it->second.empty()) pendingSendByPtr.erase(it);
-          pendingSendByPtr[fe.newPtr].push_back(sendIdx);
+          if (it->second.empty()) pendingSendByKey.erase(it);
+          pendingSendByKey[{fe.newHash, fe.aux}].push_back(sendIdx);
           hopsBySendIdx[sendIdx].push_back({fe.time, fe.recipient});
           matchStats_.forwardMatched++;
         } else {
@@ -686,7 +696,7 @@ public:
       }
     }
 
-    for (auto& [p, q] : pendingSendByPtr) matchStats_.unmatchedSends += q.size();
+    for (auto& [k, q] : pendingSendByKey) matchStats_.unmatchedSends += q.size();
     for (auto& [k, q] : fallbackSendQueues) matchStats_.unmatchedSends += q.size();
 
     if (forwardDropped > 0) {

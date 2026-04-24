@@ -156,8 +156,8 @@ void DrawMessageTooltip(size_t msgIdx) {
            FormatTime(m.end).c_str());
   lines.push_back(buf);
 
-  if (m.handlePtr != 0) {
-    snprintf(buf, sizeof(buf), "handlePtr: 0x%llx", (unsigned long long)m.handlePtr);
+  if (m.handleHash != 0) {
+    snprintf(buf, sizeof(buf), "handleHash: 0x%08x", (unsigned int)m.handleHash);
     lines.push_back(buf);
   }
 
