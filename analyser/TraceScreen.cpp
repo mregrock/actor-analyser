@@ -162,52 +162,109 @@ void TraceScreen::Draw() const {
                       Rgba(180, 200, 220));
   }
 
+  int blockHalfH = std::max(4, (int)(laneHeight * 0.35));
+
+  std::vector<Si64> parentOf;
+  {
+    parentOf.assign(msgs.size(), -1);
+    for (size_t i = 0; i < msgs.size(); ++i) {
+      for (Si64 child : msgs[i].child_msg_idxs) {
+        if (child >= 0 && (size_t)child < parentOf.size() && parentOf[child] < 0) {
+          parentOf[child] = (Si64)i;
+        }
+      }
+    }
+  }
+
+  auto colorFor = [&](size_t idx) -> Rgba {
+    if (idx == rootMsgIdx_) return Rgba(255, 220, 40);
+    if (Highlight::IsAncestor(idx)) return Rgba(90, 170, 255);
+    if (Highlight::IsDescendant(idx)) return Rgba(120, 230, 120);
+    return Rgba(200, 200, 200);
+  };
+
   for (size_t idx : orderedMsgs_) {
     const auto& m = msgs[idx];
-    auto fromIt = actorToLane_.find(m.from);
     auto toIt = actorToLane_.find(m.to);
-    int fromLane = (fromIt != actorToLane_.end()) ? fromIt->second : 0;
-    int toLane = (toIt != actorToLane_.end()) ? toIt->second : 0;
+    if (toIt == actorToLane_.end()) continue;
+    int toLane = toIt->second;
+
+    Si64 pIdx = (idx < parentOf.size()) ? parentOf[idx] : -1;
+    if (pIdx < 0) continue;
+    if (!Highlight::IsMsgInChain((size_t)pIdx)) continue;
+
+    const auto& pm = msgs[pIdx];
+    auto pToIt = actorToLane_.find(pm.to);
+    if (pToIt == actorToLane_.end()) continue;
+    int pLane = pToIt->second;
+
+    double px = timeToX(pm.end);
+    double cx = timeToX(m.start);
+    double py = laneY(pLane);
+    double cy = laneY(toLane);
+
+    Rgba linkColor = colorFor(idx);
+    linkColor.a = 140;
+    DrawLine(sprite, Vec2Si32((int)px, (int)py), Vec2Si32((int)cx, (int)cy), linkColor);
+  }
+
+  for (size_t idx : orderedMsgs_) {
+    const auto& m = msgs[idx];
+    auto toIt = actorToLane_.find(m.to);
+    if (toIt == actorToLane_.end()) continue;
+    int toLane = toIt->second;
 
     double x1 = timeToX(m.start);
     double x2 = timeToX(m.end);
-    if (x2 - x1 < 1.0) x2 = x1 + 1.0;
-    double y1 = laneY(fromLane);
-    double y2 = laneY(toLane);
-
-    Rgba color;
-    if (idx == rootMsgIdx_) color = Rgba(255, 220, 40);
-    else if (Highlight::IsAncestor(idx)) color = Rgba(90, 170, 255);
-    else if (Highlight::IsDescendant(idx)) color = Rgba(120, 230, 120);
-    else color = Rgba(200, 200, 200);
+    double y = laneY(toLane);
 
     if (x2 < areaX0 - 40 || x1 > areaX1 + 40) continue;
 
-    DrawArrow(sprite, Vec2F((float)x1, (float)y1), Vec2F((float)x2, (float)y2),
-              1.5f, 6.0f, 10.0f, color);
+    Rgba color = colorFor(idx);
+    Rgba borderColor = Rgba(
+        (uint8_t)std::min(255, (int)color.r + 40),
+        (uint8_t)std::min(255, (int)color.g + 40),
+        (uint8_t)std::min(255, (int)color.b + 40),
+        255);
 
-    double midX = (x1 + x2) * 0.5;
-    double midY = (y1 + y2) * 0.5;
+    int bx1 = (int)x1;
+    int bx2 = (int)x2;
+    if (bx2 - bx1 < 2) bx2 = bx1 + 2;
+    int by1 = (int)y - blockHalfH;
+    int by2 = (int)y + blockHalfH;
+
+    DrawRectangle(sprite, Vec2Si32(bx1, by1), Vec2Si32(bx2, by2), color);
+    DrawLine(sprite, Vec2Si32(bx1, by1), Vec2Si32(bx2, by1), borderColor);
+    DrawLine(sprite, Vec2Si32(bx2, by1), Vec2Si32(bx2, by2), borderColor);
+    DrawLine(sprite, Vec2Si32(bx2, by2), Vec2Si32(bx1, by2), borderColor);
+    DrawLine(sprite, Vec2Si32(bx1, by2), Vec2Si32(bx1, by1), borderColor);
+
     std::string mt(m.messageType);
     if (VisualisationHelper::IsShortMessageTypeActivate()) {
       mt = Logs::GetShortLogMessageType(mt);
     }
-    if (mt.size() > 40) mt = mt.substr(0, 39) + "~";
-
     Vec2Si32 textSize = g_large_font.EvaluateSize(mt.c_str(), false);
-    int tx = (int)midX - textSize.x / 2;
-    int ty = (int)midY + textSize.y / 2;
-    DrawRectangle(sprite,
-                  Vec2Si32(tx - 2, ty - textSize.y - 2),
-                  Vec2Si32(tx + textSize.x + 2, ty + 2),
-                  Rgba(0, 0, 0, 180));
-    g_large_font.Draw(sprite, mt.c_str(), tx, ty,
-                      kTextOriginTop, kTextAlignmentLeft,
-                      kDrawBlendingModeColorize, kFilterNearest,
-                      color);
-
-    DrawCircle(sprite, Vec2Si32((int)x1, (int)y1), 3, color);
-    DrawCircle(sprite, Vec2Si32((int)x2, (int)y2), 3, color);
+    int blockW = bx2 - bx1;
+    int tx;
+    int ty = by1 + (by2 - by1 + textSize.y) / 2;
+    bool drawInside = textSize.x + 6 <= blockW;
+    if (drawInside) {
+      tx = bx1 + (blockW - textSize.x) / 2;
+      g_large_font.Draw(sprite, mt.c_str(), tx, ty,
+                        kTextOriginTop, kTextAlignmentLeft,
+                        kDrawBlendingModeColorize, kFilterNearest,
+                        Rgba(0, 0, 0));
+    } else {
+      tx = bx2 + 4;
+      DrawRectangle(sprite,
+                    Vec2Si32(tx - 2, ty - textSize.y - 1),
+                    Vec2Si32(tx + textSize.x + 2, ty + 1),
+                    Rgba(0, 0, 0, 180));
+      g_large_font.Draw(sprite, mt.c_str(), tx, ty,
+                        kTextOriginTop, kTextAlignmentLeft,
+                        kDrawBlendingModeColorize, kFilterNearest,
+                        color);
+    }
   }
 
   char header[256];
