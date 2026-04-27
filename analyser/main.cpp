@@ -31,6 +31,7 @@
 #include "InputController.hpp"
 #include "Tooltip.hpp"
 #include "Highlight.hpp"
+#include "ActorSearch.hpp"
 
 #include <iostream>
 #include <memory>
@@ -198,7 +199,10 @@ void EasyMain() {
   }
 
 
-  while (!IsKeyDownward( kKeyEscape)) {
+  while (true) {
+    if (IsKeyDownward(kKeyEscape) && !ActorSearch::IsActive()) {
+      break;
+    }
 
     Clear(Rgba(32, 32, 32));
 
@@ -214,6 +218,8 @@ void EasyMain() {
       screen.Draw();
       g_trace_screen.Listen();
     } else {
+      ActorSearch::HandleInput();
+
       DrawBox screen;
       screen.SetDrawSprite( GetEngine()->GetBackbuffer());
       screen.SetDrawOptions(DrawBoxOptions{
@@ -331,14 +337,17 @@ void EasyMain() {
         WorldRenderer::DrawActor(g_actors[g_mouse_nearest_actor_idx]);
       }
 
-      ppp.Listen();
-      g_time_line.Listen();
-      InputController::UpdateCamera();
-      InputController::UpdateTime();
-      mainFrame.Listen();
-      VisualisationHelper::Listen(*g_pgseet, &mainFrame);
-      FilterPanel::HandleInput();
+      if (!ActorSearch::IsActive()) {
+        ppp.Listen();
+        g_time_line.Listen();
+        InputController::UpdateCamera();
+        InputController::UpdateTime();
+        mainFrame.Listen();
+        VisualisationHelper::Listen(*g_pgseet, &mainFrame);
+        FilterPanel::HandleInput();
+      }
       FilterPanel::Draw();
+      ActorSearch::Draw();
 
       VisualisationTime curTime = g_time_line.GetTime();
       std::string time = std::to_string(curTime / 1'000'000) + '.' +

@@ -324,10 +324,10 @@ public:
 
     std::map<uint8_t, std::string_view> threadIdStrings;
     for (const auto& ev : events) {
-      if (ev.type == BinaryEventType::SendLocal || ev.type == BinaryEventType::ReceiveLocal) {
-        if (!threadIdStrings.count(ev.flags)) {
-          binStrings_.push_back("T" + std::to_string(ev.flags));
-          threadIdStrings[ev.flags] = binStrings_.back();
+      if (ev.Type == BinaryEventType::SendLocal || ev.Type == BinaryEventType::ReceiveLocal) {
+        if (!threadIdStrings.count(ev.ThreadIdx)) {
+          binStrings_.push_back("T" + std::to_string(ev.ThreadIdx));
+          threadIdStrings[ev.ThreadIdx] = binStrings_.back();
         }
       }
     }
@@ -337,74 +337,74 @@ public:
     for (size_t i = 0; i < events.size(); ++i) {
       const BinaryEvent& ev = events[i];
 
-      if (ev.type == BinaryEventType::SendLocal || ev.type == BinaryEventType::ReceiveLocal) {
+      if (ev.Type == BinaryEventType::SendLocal || ev.Type == BinaryEventType::ReceiveLocal) {
         ParsedLogLine pll;
-        pll.type = (ev.type == BinaryEventType::SendLocal) ? std::string_view(sendStr) : std::string_view(receiveStr);
+        pll.type = (ev.Type == BinaryEventType::SendLocal) ? std::string_view(sendStr) : std::string_view(receiveStr);
 
         ActorIdx fromIdx;
-        if (ev.actor1 == 0) {
-          auto tpIt = threadPoolDict.find(ev.flags);
+        if (ev.Sender == 0) {
+          auto tpIt = threadPoolDict.find(ev.ThreadIdx);
           if (tpIt != threadPoolDict.end()) {
             fromIdx = getOrCreatePoolActorIdx(tpIt->second);
           } else {
-            fromIdx = getOrCreatePoolActorIdx("Thread_" + std::to_string(ev.flags));
+            fromIdx = getOrCreatePoolActorIdx("Thread_" + std::to_string(ev.ThreadIdx));
           }
         } else {
-          fromIdx = getOrCreateActorIdx(ev.actor1);
+          fromIdx = getOrCreateActorIdx(ev.Sender);
         }
-        ActorIdx toIdx = getOrCreateActorIdx(ev.actor2);
+        ActorIdx toIdx = getOrCreateActorIdx(ev.Recipient);
         pll.from = fromIdx;
         pll.to = toIdx;
 
-        pll.time = static_cast<VisualisationTime>(absTs(ev.deltaUs));
+        pll.time = static_cast<VisualisationTime>(absTs(ev.DeltaUs));
 
         pll.message = emptyStr;
 
         {
-          auto actIt = activityDict.find(ev.extra);
+          auto actIt = activityDict.find(ev.ActivityIndex);
           if (actIt != activityDict.end()) {
             pll.actorType = std::string_view(actIt->second);
           }
         }
 
-        pll.auxTypeId = ev.aux;
-        auto msgIt = eventNamesDict.find(ev.aux);
+        pll.auxTypeId = ev.MessageType;
+        auto msgIt = eventNamesDict.find(ev.MessageType);
         if (msgIt != eventNamesDict.end()) {
           pll.messageType = std::string_view(msgIt->second);
         }
 
-        pll.threadId = threadIdStrings[ev.flags];
-        pll.threadName = threadIdStrings[ev.flags];
+        pll.threadId = threadIdStrings[ev.ThreadIdx];
+        pll.threadName = threadIdStrings[ev.ThreadIdx];
 
-        pll.handleHash = ev.handleHash;
+        pll.handleHash = ev.HandleHash;
 
         parsedLogLines_.push_back(pll);
 
-      } else if (ev.type == BinaryEventType::ForwardLocal) {
+      } else if (ev.Type == BinaryEventType::ForwardLocal) {
         ForwardEvent fe;
-        fe.time = static_cast<VisualisationTime>(absTs(ev.deltaUs));
-        fe.oldHash = ev.handleHash;
-        fe.newHash = static_cast<uint32_t>(ev.actor1);
-        fe.aux = ev.aux;
-        fe.extra = ev.extra;
-        fe.recipient = getOrCreateActorIdx(ev.actor2);
+        fe.time = static_cast<VisualisationTime>(absTs(ev.DeltaUs));
+        fe.oldHash = ev.HandleHash;
+        fe.newHash = static_cast<uint32_t>(ev.Sender);
+        fe.aux = ev.MessageType;
+        fe.extra = ev.ActivityIndex;
+        fe.recipient = getOrCreateActorIdx(ev.Recipient);
         forwardEvents_.push_back(fe);
 
-      } else if (ev.type == BinaryEventType::New || ev.type == BinaryEventType::Die) {
-        ActorIdx actorIdx = getOrCreateActorIdx(ev.actor1);
+      } else if (ev.Type == BinaryEventType::New || ev.Type == BinaryEventType::Die) {
+        ActorIdx actorIdx = getOrCreateActorIdx(ev.Sender);
 
-        if (ev.type == BinaryEventType::New && ev.extra != 0) {
-          auto actIt = activityDict.find(ev.extra);
+        if (ev.Type == BinaryEventType::New && ev.ActivityIndex != 0) {
+          auto actIt = activityDict.find(ev.ActivityIndex);
           if (actIt != activityDict.end()) {
             newActorTypeHints_[actorIdx] = std::string_view(actIt->second);
           }
         }
 
         NewDieLogLine ndl;
-        ndl.type = (ev.type == BinaryEventType::New) ? std::string_view(newStr) : std::string_view(dieStr);
+        ndl.type = (ev.Type == BinaryEventType::New) ? std::string_view(newStr) : std::string_view(dieStr);
         ndl.id = actorNumIdToRealActorId_[actorIdx];
 
-        binStrings_.push_back(std::to_string(absTs(ev.deltaUs)));
+        binStrings_.push_back(std::to_string(absTs(ev.DeltaUs)));
         ndl.time = binStrings_.back();
         ndl.threadId = emptyStr;
 
@@ -446,7 +446,7 @@ public:
 
       dbg << "Forward events (total): " << matchStats_.forwardCount << std::endl;
       dbg << "Forward events (matched to pending Send): " << matchStats_.forwardMatched << std::endl;
-      dbg << "Matches via HandleHash+Aux: " << matchStats_.handleMatched << std::endl;
+      dbg << "Matches via HandleHash+MessageType: " << matchStats_.handleMatched << std::endl;
       dbg << "Matches via legacy fallback (handleHash=0): " << matchStats_.fallbackMatched << std::endl;
       dbg << "Unmatched Receives: " << matchStats_.unmatchedReceives << std::endl;
       dbg << "Unmatched Sends at end of pass: " << matchStats_.unmatchedSends << std::endl;
@@ -559,7 +559,7 @@ public:
   static void CreateLogMessagesBinary() {
     static const std::string emptyMsgType;
 
-    // Composite key: (handleHash, aux/MessageType). Aux adds entropy,
+    // Composite key: (HandleHash, MessageType). MessageType adds entropy,
     // lowers collision rate. FIFO per key matches v3 behaviour.
     using HandleKey = std::pair<uint32_t, uint32_t>;
     struct HandleKeyHash {

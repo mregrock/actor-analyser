@@ -27,14 +27,14 @@ struct BinaryFileHeader {
 static_assert(sizeof(BinaryFileHeader) == 32);
 
 struct BinaryEvent {
-  uint64_t actor1;      // offset 0
-  uint64_t actor2;      // offset 8
-  uint32_t handleHash;  // offset 16 (replaces v3 handlePtr, now 32-bit)
-  uint32_t deltaUs;     // offset 20
-  uint32_t aux;         // offset 24 (MessageType)
-  uint16_t extra;       // offset 28 (ActivityIndex)
-  uint8_t  type;        // offset 30
-  uint8_t  flags;       // offset 31 (ThreadIdx)
+  uint64_t Sender;        // offset 0
+  uint64_t Recipient;     // offset 8
+  uint32_t HandleHash;    // offset 16
+  uint32_t DeltaUs;       // offset 20
+  uint32_t MessageType;   // offset 24
+  uint16_t ActivityIndex; // offset 28
+  uint8_t  Type;          // offset 30
+  uint8_t  ThreadIdx;     // offset 31
 };
 
 static_assert(sizeof(BinaryEvent) == 32);
@@ -115,7 +115,7 @@ public:
   static const std::map<uint32_t, std::string>& GetThreadPoolDict() { return threadPoolDict_; }
 
   static uint64_t AbsTimestampUs(const BinaryEvent& ev) {
-    return header_.startTimestampUs + static_cast<uint64_t>(ev.deltaUs);
+    return header_.startTimestampUs + static_cast<uint64_t>(ev.DeltaUs);
   }
 
   static std::string ActorIdToHex(uint64_t id) {
