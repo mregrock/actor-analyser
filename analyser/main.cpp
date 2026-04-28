@@ -82,6 +82,7 @@ constexpr const char* kDefaultTraceFile = "data/actors_trace_single_v4.bin";
 
 std::string g_current_trace_file;
 std::string g_trace_status;
+bool g_has_trace_loaded = false;
 
 bool IsShortcutDown() {
   return IsKeyDown(kKeyControl) || IsKeyDown(kKeyLeftControl) || IsKeyDown(kKeyRightControl);
@@ -174,6 +175,7 @@ bool TryLoadTraceFile(const std::string& path, std::string* error) {
     g_actors.clear();
     g_messages.clear();
     g_arrows.clear();
+    g_has_trace_loaded = false;
     g_mouse_nearest_message_idx = -1;
     g_mouse_nearest_actor_idx = -1;
     g_update_frame = 1;
@@ -203,6 +205,7 @@ bool TryLoadTraceFile(const std::string& path, std::string* error) {
     FillMessageRecords();
 
     g_current_trace_file = path;
+    g_has_trace_loaded = true;
     g_trace_status = "Trace: " + FileNameOnly(path) + "  |  Cmd+O open";
     WriteTraceLoadDebug();
     return true;
@@ -229,6 +232,10 @@ bool LoadTraceFile(const std::string& path) {
   return false;
 }
 
+bool HasTraceLoaded() {
+  return g_has_trace_loaded && g_pgseet != nullptr;
+}
+
 void HandleOpenTraceShortcut() {
   if (!IsShortcutDown() || !IsKeyDownward(kKeyO)) return;
 
@@ -247,6 +254,27 @@ void DrawTraceStatus() {
               Rgba(210, 230, 255));
 }
 
+void DrawEmptyTraceScreen() {
+  DrawTraceStatus();
+
+  const char* title = "No trace loaded";
+  const char* hint = "Press Cmd+O to open actor trace file";
+  Vec2Si32 titleSize = g_large_font.EvaluateSize(title, false);
+  Vec2Si32 hintSize = g_font.EvaluateSize(hint, false);
+  Vec2Si32 screen = ScreenSize();
+  int x = (screen.x - titleSize.x) / 2;
+  int y = screen.y / 2 + 24;
+
+  g_large_font.Draw(GetEngine()->GetBackbuffer(), title, x, y,
+                    kTextOriginTop, kTextAlignmentLeft,
+                    kDrawBlendingModeColorize, kFilterNearest,
+                    Rgba(230, 230, 230));
+  g_font.Draw(GetEngine()->GetBackbuffer(), hint, (screen.x - hintSize.x) / 2, y - 32,
+              kTextOriginTop, kTextAlignmentLeft,
+              kDrawBlendingModeColorize, kFilterNearest,
+              Rgba(180, 220, 255));
+}
+
 }  // namespace
 
 void EasyMain() {
@@ -255,7 +283,7 @@ void EasyMain() {
   g_font.LoadLetterBits(g_tiny_font_letters, 8, 8);
 
   if (!LoadTraceFile(kDefaultTraceFile)) {
-    return;
+    g_trace_status = "No trace loaded  |  Cmd+O open";
   }
 
   Mouse mouse;
@@ -275,6 +303,13 @@ void EasyMain() {
 
     HandleOpenTraceShortcut();
     Clear(Rgba(32, 32, 32));
+
+    if (!HasTraceLoaded()) {
+      DrawEmptyTraceScreen();
+      DebugHud::Draw();
+      ShowFrame();
+      continue;
+    }
 
     if (VisualisationHelper::IsTraceMode()) {
       DrawBox screen;
