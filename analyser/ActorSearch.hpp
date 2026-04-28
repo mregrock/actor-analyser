@@ -5,6 +5,7 @@
 namespace ActorSearch {
 
 bool IsActive();
+void Reset();
 void HandleInput();
 void Draw();
 

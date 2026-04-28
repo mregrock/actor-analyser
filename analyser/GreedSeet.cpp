@@ -14,6 +14,9 @@ using namespace arctic;
 
 
 void GreedSeet::ReadConfig(std::string filename) {
+  g_layer_names.clear();
+  actorNameSeet_.clear();
+
   std::ifstream file(filename);
   arctic::Check(file.is_open(), (char*)u8"Не удалось открыть файл: ", filename.c_str());
   std::string line;

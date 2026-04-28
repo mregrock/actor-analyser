@@ -25,6 +25,7 @@ bool s_visible = false;
 }
 
 void Toggle() { s_visible = !s_visible; }
+bool IsVisible() { return s_visible; }
 
 void Draw() {
   static double prev_time = Time();
@@ -35,6 +36,8 @@ void Draw() {
   double cur_time = Time();
   g_dt = cur_time - prev_time;
   prev_time = cur_time;
+
+  if (!s_visible) return;
 
   char buf[1024];
   double fps = 1.0 / (g_dt > 0.0 ? g_dt : 1.0);
@@ -63,8 +66,6 @@ void Draw() {
                     kTextOriginTop, kTextAlignmentLeft,
                     kDrawBlendingModeColorize, kFilterNearest,
                     Rgba(255, 255, 0));
-
-  if (!s_visible) return;
 
   snprintf(buf, sizeof(buf),
            "Msgs: %zu total | Active: %lld | Visible: %lld | Time: %lld | MaxTime: %lld | Paused: %s",
