@@ -12,33 +12,41 @@
 
 static constexpr uint32_t YTRA_MAGIC = 0x41525459;
 
+static constexpr uint32_t YTRA_VERSION_MIN = 4;
+static constexpr uint32_t YTRA_VERSION_MAX = 4;
+
 struct BinaryFileHeader {
   uint32_t magic;
   uint32_t version;
   uint32_t nodeId;
   uint32_t headerSize;
   uint64_t eventCount;
+  uint64_t startTimestampUs;
 };
 
-static_assert(sizeof(BinaryFileHeader) == 24);
+static_assert(sizeof(BinaryFileHeader) == 32);
 
 struct BinaryEvent {
-  uint64_t timestamp;
-  uint64_t actor1;
-  uint64_t actor2;
-  uint32_t aux;
-  uint16_t extra;
-  uint8_t  type;
-  uint8_t  flags;
+  uint64_t Sender;        // offset 0
+  uint64_t Recipient;     // offset 8
+  uint32_t HandleHash;    // offset 16
+  uint32_t DeltaUs;       // offset 20
+  uint32_t MessageType;   // offset 24
+  uint16_t ActivityIndex; // offset 28
+  uint8_t  Type;          // offset 30
+  uint8_t  ThreadIdx;     // offset 31
 };
 
 static_assert(sizeof(BinaryEvent) == 32);
+
+static constexpr size_t kBinaryEventSizeV4 = 32;
 
 enum BinaryEventType : uint8_t {
   SendLocal    = 0,
   ReceiveLocal = 1,
   New          = 2,
   Die          = 3,
+  ForwardLocal = 4,
 };
 
 class BinaryLogReader {
@@ -60,6 +68,17 @@ public:
       throw std::runtime_error("BinaryLogReader: bad magic");
     }
 
+    if (header_.version < YTRA_VERSION_MIN || header_.version > YTRA_VERSION_MAX) {
+      std::ostringstream oss;
+      oss << "BinaryLogReader: unsupported trace version " << header_.version
+          << " (supported: " << YTRA_VERSION_MIN;
+      if (YTRA_VERSION_MIN != YTRA_VERSION_MAX) {
+        oss << ".." << YTRA_VERSION_MAX;
+      }
+      oss << "). Legacy v1/v2/v3 traces are no longer supported.";
+      throw std::runtime_error(oss.str());
+    }
+
     size_t offset = sizeof(BinaryFileHeader);
     size_t dictEnd = offset + header_.headerSize;
     if (dictEnd > data.size()) {
@@ -68,27 +87,36 @@ public:
 
     activityDict_.clear();
     eventNamesDict_.clear();
+    threadPoolDict_.clear();
     events_.clear();
     stringStorage_.clear();
 
     ParseActivityDict(data, offset);
     ParseEventNamesDict(data, offset);
+    if (offset < dictEnd) {
+      ParseThreadPoolDict(data, offset);
+    }
 
     size_t eventsOffset = sizeof(BinaryFileHeader) + header_.headerSize;
-    size_t eventsEnd = eventsOffset + header_.eventCount * sizeof(BinaryEvent);
+    size_t eventsEnd = eventsOffset + header_.eventCount * kBinaryEventSizeV4;
     if (eventsEnd > data.size()) {
       throw std::runtime_error("BinaryLogReader: truncated events section");
     }
 
-    events_.resize(header_.eventCount);
+    events_.assign(header_.eventCount, BinaryEvent{});
     std::memcpy(events_.data(), data.data() + eventsOffset,
-                header_.eventCount * sizeof(BinaryEvent));
+                header_.eventCount * kBinaryEventSizeV4);
   }
 
   static const BinaryFileHeader& GetHeader() { return header_; }
   static const std::vector<BinaryEvent>& GetEvents() { return events_; }
   static const std::map<uint32_t, std::string>& GetActivityDict() { return activityDict_; }
   static const std::map<uint32_t, std::string>& GetEventNamesDict() { return eventNamesDict_; }
+  static const std::map<uint32_t, std::string>& GetThreadPoolDict() { return threadPoolDict_; }
+
+  static uint64_t AbsTimestampUs(const BinaryEvent& ev) {
+    return header_.startTimestampUs + static_cast<uint64_t>(ev.DeltaUs);
+  }
 
   static std::string ActorIdToHex(uint64_t id) {
     std::ostringstream oss;
@@ -135,9 +163,19 @@ private:
     }
   }
 
+  static void ParseThreadPoolDict(const std::vector<uint8_t>& data, size_t& offset) {
+    uint32_t count = ReadU32(data, offset);
+    for (uint32_t i = 0; i < count; ++i) {
+      uint32_t threadIdx = ReadU32(data, offset);
+      std::string name = ReadString(data, offset);
+      threadPoolDict_[threadIdx] = std::move(name);
+    }
+  }
+
   static BinaryFileHeader header_;
   static std::vector<BinaryEvent> events_;
   static std::map<uint32_t, std::string> activityDict_;
   static std::map<uint32_t, std::string> eventNamesDict_;
+  static std::map<uint32_t, std::string> threadPoolDict_;
   static std::vector<std::string> stringStorage_;
 };

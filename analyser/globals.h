@@ -7,6 +7,7 @@
 #include <functional>
 #include "engine/vec2f.h"
 #include "engine/scalar_math.h"
+#include "engine/rgba.h"
 
 using namespace arctic;
 
@@ -104,5 +105,15 @@ extern double g_speed;
 extern double g_is_pause;
 extern TimeMode g_time_mode;
 extern std::vector<std::string> g_layer_names;
+
+extern arctic::Rgba g_arrow_color;
+
+extern VisualisationTime g_min_msg_display_duration;
+extern VisualisationTime g_min_actor_display_duration;
+
+extern Si64 g_mouse_nearest_message_idx;
+extern double g_distance_sq_to_nearest_message;
+extern Si64 g_mouse_nearest_actor_idx;
+extern double g_distance_sq_to_nearest_actor;
 
 extern std::stringstream g_log;

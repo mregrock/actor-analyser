@@ -28,6 +28,10 @@ std::set<ActorIdx> Logs::tabletIds_ = {};
 std::vector<uint8_t> Logs::rawFileData_ = {};
 std::deque<std::string> Logs::binStrings_ = {};
 std::map<uint64_t, ActorIdx> Logs::binActorIdMap_ = {};
+std::map<ActorIdx, std::string_view> Logs::newActorTypeHints_ = {};
+
+std::vector<Logs::ForwardEvent> Logs::forwardEvents_ = {};
+Logs::MatchStats Logs::matchStats_ = {};
 
 std::ostream& operator<<(std::ostream& os, const Logs::LogMessage& lm) {
   return os << "[" 

@@ -20,6 +20,7 @@
 #include <iostream>
 #include <unordered_map>
 #include <vector>
+#include <tuple>
 
 #include "globals.h"
 
@@ -87,7 +88,10 @@ public:
     std::optional<std::string_view> messageType;
     std::string_view threadId;
     std::string_view threadName;
-    
+    uint32_t auxTypeId = 0;
+
+    uint32_t handleHash = 0;
+
     // FK for the message array
     Si64 message_idx = -1;
     
@@ -123,9 +127,13 @@ public:
     std::string_view message;
     std::string_view messageType;
     size_t message_idx;
-    
+
+    uint32_t handleHash = 0;
+
     // FKs to child messages
     std::vector<Si64> child_msg_idxs;
+
+    std::vector<std::pair<VisualisationTime, ActorIdx>> forwardHops;
     
     LogMessage() = default;
     LogMessage(const LogMessage&) = default;
@@ -137,6 +145,26 @@ public:
     
     LogMessage(ActorIdx to, ActorIdx from, VisualisationTime start, VisualisationTime end, std::string_view message, size_t id) :
     to(to), from(from), start(start), end(end), message(message), message_idx(id) {}
+  };
+
+  struct ForwardEvent {
+    VisualisationTime time;
+    uint32_t oldHash;
+    uint32_t newHash;
+    uint32_t aux;
+    ActorIdx recipient;
+    uint16_t extra;
+
+    bool operator==(const ForwardEvent&) const = default;
+  };
+
+  struct MatchStats {
+    size_t forwardCount = 0;
+    size_t forwardMatched = 0;
+    size_t handleMatched = 0;
+    size_t fallbackMatched = 0;
+    size_t unmatchedReceives = 0;
+    size_t unmatchedSends = 0;
   };
   
   static void CompressTimelineGaps() {
@@ -185,6 +213,15 @@ public:
       lt.second = std::max((VisualisationTime)0, lt.second - shift);
     }
 
+    for (auto& [id, timeMap] : actorActivityTime_) {
+      std::map<VisualisationTime, VisualisationTime> shifted;
+      for (auto& [start, end] : timeMap) {
+        shifted[std::max((VisualisationTime)0, start - shift)] =
+            std::max((VisualisationTime)0, end - shift);
+      }
+      timeMap = std::move(shifted);
+    }
+
     {
       std::ofstream dbg("/tmp/actor_debug_log.txt", std::ios::app);
       dbg << "Range after: 0 .. " << GetMaxTime() << std::endl;
@@ -221,7 +258,6 @@ public:
 
     GetActorLifeInfo();
     SetActorLifeTime();
-
     SetActorThreadActive();
   }
 
@@ -234,6 +270,10 @@ public:
     const auto& events = BinaryLogReader::GetEvents();
     const auto& activityDict = BinaryLogReader::GetActivityDict();
     const auto& eventNamesDict = BinaryLogReader::GetEventNamesDict();
+    const uint64_t startTs = BinaryLogReader::GetHeader().startTimestampUs;
+    auto absTs = [startTs](uint32_t deltaUs) -> uint64_t {
+      return startTs + static_cast<uint64_t>(deltaUs);
+    };
 
     binStrings_.clear();
 
@@ -246,18 +286,33 @@ public:
 
     ActorIdx curUnusedActorId = 0;
 
+    const auto& threadPoolDict = BinaryLogReader::GetThreadPoolDict();
+
     auto getOrCreateActorIdx = [&](uint64_t rawId) -> ActorIdx {
-      std::string hexStr = BinaryLogReader::ActorIdToHex(rawId);
       auto it = binActorIdMap_.find(rawId);
       if (it != binActorIdMap_.end()) {
         return it->second;
       }
       ActorIdx idx = curUnusedActorId++;
       binActorIdMap_[rawId] = idx;
-      binStrings_.push_back(hexStr);
+      binStrings_.push_back(BinaryLogReader::ActorIdToHex(rawId));
       std::string_view sv = binStrings_.back();
       actorNumIdToRealActorId_[idx] = sv;
       realActorIdToActorNumId_[sv] = idx;
+      return idx;
+    };
+
+    auto getOrCreatePoolActorIdx = [&](const std::string& poolName) -> ActorIdx {
+      auto it = realActorIdToActorNumId_.find(poolName);
+      if (it != realActorIdToActorNumId_.end()) {
+        return it->second;
+      }
+      ActorIdx idx = curUnusedActorId++;
+      binStrings_.push_back(poolName);
+      std::string_view sv = binStrings_.back();
+      actorNumIdToRealActorId_[idx] = sv;
+      realActorIdToActorNumId_[sv] = idx;
+      threadActorIds_.push_back({idx, sv});
       return idx;
     };
 
@@ -267,49 +322,89 @@ public:
     static const std::string dieStr = "Die";
     static const std::string emptyStr = "";
 
+    std::map<uint8_t, std::string_view> threadIdStrings;
+    for (const auto& ev : events) {
+      if (ev.Type == BinaryEventType::SendLocal || ev.Type == BinaryEventType::ReceiveLocal) {
+        if (!threadIdStrings.count(ev.ThreadIdx)) {
+          binStrings_.push_back("T" + std::to_string(ev.ThreadIdx));
+          threadIdStrings[ev.ThreadIdx] = binStrings_.back();
+        }
+      }
+    }
+
     parsedLogLines_.reserve(events.size());
 
     for (size_t i = 0; i < events.size(); ++i) {
       const BinaryEvent& ev = events[i];
 
-      if (ev.type == BinaryEventType::SendLocal || ev.type == BinaryEventType::ReceiveLocal) {
+      if (ev.Type == BinaryEventType::SendLocal || ev.Type == BinaryEventType::ReceiveLocal) {
         ParsedLogLine pll;
-        pll.type = (ev.type == BinaryEventType::SendLocal) ? std::string_view(sendStr) : std::string_view(receiveStr);
+        pll.type = (ev.Type == BinaryEventType::SendLocal) ? std::string_view(sendStr) : std::string_view(receiveStr);
 
-        ActorIdx fromIdx = getOrCreateActorIdx(ev.actor1);
-        ActorIdx toIdx = getOrCreateActorIdx(ev.actor2);
+        ActorIdx fromIdx;
+        if (ev.Sender == 0) {
+          auto tpIt = threadPoolDict.find(ev.ThreadIdx);
+          if (tpIt != threadPoolDict.end()) {
+            fromIdx = getOrCreatePoolActorIdx(tpIt->second);
+          } else {
+            fromIdx = getOrCreatePoolActorIdx("Thread_" + std::to_string(ev.ThreadIdx));
+          }
+        } else {
+          fromIdx = getOrCreateActorIdx(ev.Sender);
+        }
+        ActorIdx toIdx = getOrCreateActorIdx(ev.Recipient);
         pll.from = fromIdx;
         pll.to = toIdx;
 
-        pll.time = static_cast<VisualisationTime>(ev.timestamp);
+        pll.time = static_cast<VisualisationTime>(absTs(ev.DeltaUs));
 
         pll.message = emptyStr;
 
-        if (ev.type == BinaryEventType::ReceiveLocal) {
-          auto actIt = activityDict.find(ev.extra);
+        {
+          auto actIt = activityDict.find(ev.ActivityIndex);
           if (actIt != activityDict.end()) {
             pll.actorType = std::string_view(actIt->second);
           }
         }
 
-        auto msgIt = eventNamesDict.find(ev.aux);
+        pll.auxTypeId = ev.MessageType;
+        auto msgIt = eventNamesDict.find(ev.MessageType);
         if (msgIt != eventNamesDict.end()) {
           pll.messageType = std::string_view(msgIt->second);
         }
 
-        pll.threadId = emptyStr;
-        pll.threadName = emptyStr;
+        pll.threadId = threadIdStrings[ev.ThreadIdx];
+        pll.threadName = threadIdStrings[ev.ThreadIdx];
+
+        pll.handleHash = ev.HandleHash;
 
         parsedLogLines_.push_back(pll);
 
-      } else if (ev.type == BinaryEventType::New || ev.type == BinaryEventType::Die) {
-        ActorIdx actorIdx = getOrCreateActorIdx(ev.actor1);
+      } else if (ev.Type == BinaryEventType::ForwardLocal) {
+        ForwardEvent fe;
+        fe.time = static_cast<VisualisationTime>(absTs(ev.DeltaUs));
+        fe.oldHash = ev.HandleHash;
+        fe.newHash = static_cast<uint32_t>(ev.Sender);
+        fe.aux = ev.MessageType;
+        fe.extra = ev.ActivityIndex;
+        fe.recipient = getOrCreateActorIdx(ev.Recipient);
+        forwardEvents_.push_back(fe);
+
+      } else if (ev.Type == BinaryEventType::New || ev.Type == BinaryEventType::Die) {
+        ActorIdx actorIdx = getOrCreateActorIdx(ev.Sender);
+
+        if (ev.Type == BinaryEventType::New && ev.ActivityIndex != 0) {
+          auto actIt = activityDict.find(ev.ActivityIndex);
+          if (actIt != activityDict.end()) {
+            newActorTypeHints_[actorIdx] = std::string_view(actIt->second);
+          }
+        }
 
         NewDieLogLine ndl;
-        ndl.type = (ev.type == BinaryEventType::New) ? std::string_view(newStr) : std::string_view(dieStr);
+        ndl.type = (ev.Type == BinaryEventType::New) ? std::string_view(newStr) : std::string_view(dieStr);
         ndl.id = actorNumIdToRealActorId_[actorIdx];
 
-        binStrings_.push_back(std::to_string(ev.timestamp));
+        binStrings_.push_back(std::to_string(absTs(ev.DeltaUs)));
         ndl.time = binStrings_.back();
         ndl.threadId = emptyStr;
 
@@ -324,11 +419,18 @@ public:
                 return a.time < b.time;
               });
 
+    std::sort(forwardEvents_.begin(), forwardEvents_.end(),
+              [](const ForwardEvent& a, const ForwardEvent& b) {
+                return a.time < b.time;
+              });
+
     CreateLogMessagesBinary();
 
     {
       std::ofstream dbg("/tmp/actor_debug_log.txt");
       dbg << "=== BINARY LOAD DEBUG ===" << std::endl;
+      dbg << "Trace version: " << BinaryLogReader::GetHeader().version << std::endl;
+      dbg << "Start timestamp (us): " << startTs << std::endl;
       dbg << "Total binary events: " << events.size() << std::endl;
 
       size_t sendCount = 0, recvCount = 0;
@@ -341,6 +443,13 @@ public:
       dbg << "NewDieLogLines: " << newDieLogLines_.size() << std::endl;
       dbg << "LogMessages (correlated): " << logMessages_.size() << std::endl;
       dbg << "Unique actors: " << maxActorId_ << std::endl;
+
+      dbg << "Forward events (total): " << matchStats_.forwardCount << std::endl;
+      dbg << "Forward events (matched to pending Send): " << matchStats_.forwardMatched << std::endl;
+      dbg << "Matches via HandleHash+MessageType: " << matchStats_.handleMatched << std::endl;
+      dbg << "Matches via legacy fallback (handleHash=0): " << matchStats_.fallbackMatched << std::endl;
+      dbg << "Unmatched Receives: " << matchStats_.unmatchedReceives << std::endl;
+      dbg << "Unmatched Sends at end of pass: " << matchStats_.unmatchedSends << std::endl;
 
       if (!logMessages_.empty()) {
         VisualisationTime minStart = logMessages_[0].start, maxEnd = logMessages_[0].end;
@@ -418,14 +527,20 @@ public:
 
     for (auto& [rawId, actorIdx] : binActorIdMap_) {
       if (!actorIdToActorType_.count(actorIdx)) {
-        binStrings_.push_back("SYSTEM");
-        std::string_view sv = binStrings_.back();
-        actorIdToActorType_[actorIdx] = sv;
-        actorTypeToActorId_[sv].push_back(actorIdx);
+        std::string_view typeToUse;
+        if (newActorTypeHints_.count(actorIdx)) {
+          typeToUse = newActorTypeHints_[actorIdx];
+        } else {
+          binStrings_.push_back("UNKNOWN");
+          typeToUse = binStrings_.back();
+        }
+        actorIdToActorType_[actorIdx] = typeToUse;
+        actorTypeToActorId_[typeToUse].push_back(actorIdx);
       }
     }
 
     SetActorLifeTimeBinary();
+    SetActorThreadActive();
     CompressTimelineGaps();
 
     {
@@ -442,69 +557,191 @@ public:
   }
 
   static void CreateLogMessagesBinary() {
-    using PairKey = std::pair<ActorIdx, ActorIdx>;
-    std::map<PairKey, std::queue<size_t>> sendQueues;
+    static const std::string emptyMsgType;
+
+    // Composite key: (HandleHash, MessageType). MessageType adds entropy,
+    // lowers collision rate. FIFO per key matches v3 behaviour.
+    using HandleKey = std::pair<uint32_t, uint32_t>;
+    struct HandleKeyHash {
+      size_t operator()(const HandleKey& k) const noexcept {
+        return ((size_t)k.first << 32) ^ (size_t)k.second ^ ((size_t)k.second << 16);
+      }
+    };
+    std::unordered_map<HandleKey, std::deque<size_t>, HandleKeyHash> pendingSendByKey;
+    std::unordered_map<size_t, std::vector<std::pair<VisualisationTime, ActorIdx>>> hopsBySendIdx;
+
+    using FallbackKey = std::tuple<ActorIdx, ActorIdx, uint32_t>;
+    std::map<FallbackKey, std::queue<size_t>> fallbackSendQueues;
+    using ThreadFallbackKey = std::pair<ActorIdx, uint32_t>;
+    std::map<ThreadFallbackKey, std::queue<size_t>> threadFallbackQueues;
+
+    std::set<ActorIdx> threadActorIdSet;
+    for (auto& [idx, name] : threadActorIds_) {
+      threadActorIdSet.insert(idx);
+    }
+
+    matchStats_ = MatchStats{};
+    matchStats_.forwardCount = forwardEvents_.size();
+
+    auto makeMsg = [&](size_t sendIdx, ParsedLogLine& recvLine) {
+      ParsedLogLine& sendLine = parsedLogLines_[sendIdx];
+      LogMessage msg;
+      msg.from = sendLine.from;
+      msg.to = sendLine.to;
+      msg.start = sendLine.time;
+      msg.end = recvLine.time;
+      msg.message = sendLine.message;
+      msg.messageType = recvLine.messageType.value_or(std::string_view(emptyMsgType));
+      msg.message_idx = logMessages_.size();
+      msg.handleHash = sendLine.handleHash;
+      auto hopIt = hopsBySendIdx.find(sendIdx);
+      if (hopIt != hopsBySendIdx.end()) {
+        msg.forwardHops = std::move(hopIt->second);
+        hopsBySendIdx.erase(hopIt);
+      }
+      sendLine.message_idx = msg.message_idx;
+      recvLine.message_idx = msg.message_idx;
+      logMessages_.push_back(msg);
+    };
+
+    struct StreamItem {
+      VisualisationTime time;
+      uint8_t kind;
+      size_t idx;
+    };
+    std::vector<StreamItem> stream;
+    stream.reserve(parsedLogLines_.size() + forwardEvents_.size());
 
     for (size_t i = 0; i < parsedLogLines_.size(); ++i) {
-      ParsedLogLine& pll = parsedLogLines_[i];
-      PairKey key = {pll.from, pll.to};
+      const ParsedLogLine& pll = parsedLogLines_[i];
+      uint8_t kind = 3;
+      if (pll.type == "Send") kind = 0;
+      else if (pll.type == "Receive") kind = 2;
+      else continue;
+      stream.push_back({pll.time, kind, i});
+    }
+    for (size_t i = 0; i < forwardEvents_.size(); ++i) {
+      stream.push_back({forwardEvents_[i].time, 1, i});
+    }
 
-      if (pll.type == "Send") {
-        sendQueues[key].push(i);
-      } else if (pll.type == "Receive") {
-        PairKey senderKey = {pll.from, pll.to};
-        auto it = sendQueues.find(senderKey);
-        if (it != sendQueues.end() && !it->second.empty()) {
+    std::stable_sort(stream.begin(), stream.end(),
+      [](const StreamItem& a, const StreamItem& b) {
+        if (a.time != b.time) return a.time < b.time;
+        return a.kind < b.kind;
+      });
+
+    size_t forwardDropped = 0;
+
+    for (const StreamItem& item : stream) {
+      if (item.kind == 0) {
+        ParsedLogLine& pll = parsedLogLines_[item.idx];
+        if (pll.handleHash != 0) {
+          pendingSendByKey[{pll.handleHash, pll.auxTypeId}].push_back(item.idx);
+        } else {
+          fallbackSendQueues[{pll.from, pll.to, pll.auxTypeId}].push(item.idx);
+          if (threadActorIdSet.count(pll.from)) {
+            threadFallbackQueues[{pll.to, pll.auxTypeId}].push(item.idx);
+          }
+        }
+      } else if (item.kind == 2) {
+        ParsedLogLine& pll = parsedLogLines_[item.idx];
+        if (pll.handleHash != 0) {
+          HandleKey key{pll.handleHash, pll.auxTypeId};
+          auto it = pendingSendByKey.find(key);
+          if (it != pendingSendByKey.end() && !it->second.empty()) {
+            size_t sendIdx = it->second.front();
+            it->second.pop_front();
+            if (it->second.empty()) pendingSendByKey.erase(it);
+            makeMsg(sendIdx, pll);
+            matchStats_.handleMatched++;
+          } else {
+            matchStats_.unmatchedReceives++;
+          }
+        } else {
+          FallbackKey key{pll.from, pll.to, pll.auxTypeId};
+          auto it = fallbackSendQueues.find(key);
+          if (it != fallbackSendQueues.end() && !it->second.empty()) {
+            size_t sendIdx = it->second.front();
+            it->second.pop();
+            makeMsg(sendIdx, pll);
+            matchStats_.fallbackMatched++;
+          } else if (threadActorIdSet.count(pll.from)) {
+            auto fit = threadFallbackQueues.find({pll.to, pll.auxTypeId});
+            if (fit != threadFallbackQueues.end() && !fit->second.empty()) {
+              size_t sendIdx = fit->second.front();
+              fit->second.pop();
+              makeMsg(sendIdx, pll);
+              matchStats_.fallbackMatched++;
+            } else {
+              matchStats_.unmatchedReceives++;
+            }
+          } else {
+            matchStats_.unmatchedReceives++;
+          }
+        }
+      } else if (item.kind == 1) {
+        const ForwardEvent& fe = forwardEvents_[item.idx];
+        HandleKey oldKey{fe.oldHash, fe.aux};
+        auto it = pendingSendByKey.find(oldKey);
+        if (it != pendingSendByKey.end() && !it->second.empty()) {
           size_t sendIdx = it->second.front();
-          it->second.pop();
-
-          ParsedLogLine& sendLine = parsedLogLines_[sendIdx];
-
-          LogMessage msg;
-          msg.from = sendLine.from;
-          msg.to = sendLine.to;
-          msg.start = sendLine.time;
-          msg.end = pll.time;
-          msg.message = sendLine.message;
-          static const std::string emptyMsgType;
-          msg.messageType = pll.messageType.value_or(std::string_view(emptyMsgType));
-          msg.message_idx = logMessages_.size();
-
-          sendLine.message_idx = msg.message_idx;
-          pll.message_idx = msg.message_idx;
-
-          logMessages_.push_back(msg);
+          it->second.pop_front();
+          if (it->second.empty()) pendingSendByKey.erase(it);
+          pendingSendByKey[{fe.newHash, fe.aux}].push_back(sendIdx);
+          hopsBySendIdx[sendIdx].push_back({fe.time, fe.recipient});
+          matchStats_.forwardMatched++;
+        } else {
+          forwardDropped++;
         }
       }
+    }
+
+    for (auto& [k, q] : pendingSendByKey) matchStats_.unmatchedSends += q.size();
+    for (auto& [k, q] : fallbackSendQueues) matchStats_.unmatchedSends += q.size();
+
+    if (forwardDropped > 0) {
+      std::ofstream dbg("/tmp/actor_debug_log.txt", std::ios::app);
+      dbg << "Forward events without matching pending Send: " << forwardDropped << std::endl;
+      dbg.close();
     }
   }
 
   static void CreateActorTypeToActorIdBinary() {
-    const auto& activityDict = BinaryLogReader::GetActivityDict();
     std::set<ActorIdx> added;
+
+    for (auto& [actorIdx, poolName] : threadActorIds_) {
+      added.insert(actorIdx);
+      actorTypeToActorId_[poolName].push_back(actorIdx);
+    }
 
     for (const ParsedLogLine& pll : parsedLogLines_) {
       if (!pll.actorType) continue;
-      if (added.count(pll.to)) continue;
+      ActorIdx target = (pll.type == "Send") ? pll.from : pll.to;
+      if (added.count(target)) continue;
 
       std::string_view actorType = *pll.actorType;
       if (actorTypesMap_.count(actorType)) {
         actorType = actorTypesMap_[actorType];
       }
-      actorTypeToActorId_[actorType].push_back(pll.to);
-      added.insert(pll.to);
+      actorTypeToActorId_[actorType].push_back(target);
+      added.insert(target);
     }
   }
 
   static void CreateActorIdToActorTypeBinary() {
+    for (auto& [actorIdx, poolName] : threadActorIds_) {
+      actorIdToActorType_[actorIdx] = poolName;
+    }
+
     for (const ParsedLogLine& pll : parsedLogLines_) {
       if (!pll.actorType) continue;
+      ActorIdx target = (pll.type == "Send") ? pll.from : pll.to;
 
       std::string_view actorType = *pll.actorType;
       if (actorTypesMap_.count(actorType)) {
         actorType = actorTypesMap_[actorType];
       }
-      actorIdToActorType_[pll.to] = actorType;
+      actorIdToActorType_[target] = actorType;
     }
   }
 
@@ -524,7 +761,46 @@ public:
       }
     }
 
+    {
+      std::ofstream dbg("/tmp/actor_debug_log.txt", std::ios::app);
+      dbg << std::endl << "=== SET ACTOR LIFE TIME BINARY ===" << std::endl;
+      dbg << "oldMinTime_: " << oldMinTime_ << std::endl;
+      dbg << "newActors count: " << newActors.size() << std::endl;
+      dbg << "dieActors count: " << dieActors.size() << std::endl;
+      size_t beforeCount = 0, afterCount = 0;
+      VisualisationTime minNewTs = INT64_MAX, maxNewTs = 0;
+      for (auto& [id, t] : newActors) {
+        if (t < oldMinTime_) beforeCount++;
+        else afterCount++;
+        minNewTs = std::min(minNewTs, t);
+        maxNewTs = std::max(maxNewTs, t);
+      }
+      dbg << "New events before oldMinTime_: " << beforeCount << std::endl;
+      dbg << "New events after/equal oldMinTime_: " << afterCount << std::endl;
+      if (!newActors.empty()) {
+        dbg << "New event ts range: " << minNewTs << " .. " << maxNewTs << std::endl;
+        dbg << "oldMinTime_ - minNewTs: " << (long long)(oldMinTime_ - minNewTs) << std::endl;
+      }
+      dbg.close();
+    }
+
     NormalizeLifeTimesFromMicroseconds(newActors, dieActors);
+
+    {
+      std::ofstream dbg("/tmp/actor_debug_log.txt", std::ios::app);
+      dbg << "After normalize, sample lifeTime values (first 10 with New events):" << std::endl;
+      int cnt = 0;
+      for (auto& [id, lt] : lifeTime_) {
+        if (lt.first > 0 && cnt < 10) {
+          dbg << "  actor " << id << ": birth=" << lt.first << " death=" << lt.second << std::endl;
+          cnt++;
+        }
+      }
+      if (cnt == 0) {
+        dbg << "  (all actors have birth time = 0)" << std::endl;
+      }
+      dbg.close();
+    }
   }
 
   static void NormalizeLifeTimesFromMicroseconds(
@@ -581,6 +857,7 @@ public:
   struct ThreadState {
     ActorIdx cur_actor_idx = -1;
     Si64 cur_message_idx = -1;
+    bool has_active_interval = false;
   };
   
   static void SetActorThreadActive() {
@@ -605,14 +882,19 @@ public:
         ActorIdx curActorId = parsedLogLine.to;
         std::string_view curThreadId = parsedLogLine.threadId;
         auto thr_it = usedThreads.find(curThreadId);
-        if (thr_it != usedThreads.end()) {
+        if (thr_it != usedThreads.end() && thr_it->second.has_active_interval) {
           actorActivityTime_[thr_it->second.cur_actor_idx].rbegin()->second = parsedLogLine.time - oldMinTime_;
         }
         ThreadState &tstate = usedThreads[curThreadId];
         tstate.cur_actor_idx = curActorId;
         tstate.cur_message_idx = parsedLogLine.message_idx;
-      
-        actorActivityTime_[curActorId][parsedLogLine.time - oldMinTime_] = maxTime - oldMinTime_;
+
+        if (parsedLogLine.message_idx >= 0) {
+          actorActivityTime_[curActorId][parsedLogLine.time - oldMinTime_] = maxTime;
+          tstate.has_active_interval = true;
+        } else {
+          tstate.has_active_interval = false;
+        }
       }
     }
   }
@@ -708,13 +990,18 @@ public:
     rawFileData_.clear();
     binStrings_.clear();
     binActorIdMap_.clear();
+    newActorTypeHints_.clear();
+
+    forwardEvents_.clear();
+    matchStats_ = MatchStats{};
   }
   
-  static bool IsAlife(ActorIdx id, VisualisationTime time) {
+  static bool IsAlife(ActorIdx id, VisualisationTime time, VisualisationTime minDuration = 0) {
     if (!lifeTime_.count(id)) {
       return true;
     }
-    if (lifeTime_[id].first <= time && lifeTime_[id].second >= time) {
+    VisualisationTime displayEnd = std::max(lifeTime_[id].second, lifeTime_[id].first + minDuration);
+    if (lifeTime_[id].first <= time && displayEnd >= time) {
       return true;
     }
     return false;
@@ -1121,6 +1408,10 @@ public:
   static std::vector<uint8_t> rawFileData_;
   static std::deque<std::string> binStrings_;
   static std::map<uint64_t, ActorIdx> binActorIdMap_;
+  static std::map<ActorIdx, std::string_view> newActorTypeHints_;
+
+  static std::vector<ForwardEvent> forwardEvents_;
+  static MatchStats matchStats_;
 };
 
 std::ostream& operator<<(std::ostream& os, const Logs::LogMessage& lm);
