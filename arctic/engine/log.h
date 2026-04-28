@@ -1,0 +1,81 @@
+// The MIT License (MIT)
+//
+// Copyright (c) 2018 Huldra
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and / or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+// FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+// IN THE SOFTWARE.
+
+#ifndef ENGINE_LOG_H_
+#define ENGINE_LOG_H_
+
+#include <memory>
+//#include <sstream>
+#include <iosfwd>
+#include "engine/arctic_types.h"
+
+namespace arctic {
+
+/// @addtogroup global_log
+/// @{
+
+/// @brief Provides a streaming interface to write log
+/// @return A unique pointer to an ostringstream with a custom deleter
+/// 
+/// The logger is automatically started by the engine before EasyMain is called,
+/// so users only need to use this function to write log messages.
+/// 
+/// Usage example:
+/// @code
+///   *Log() << "Hello World!";
+///   *Log() << "Value: " << 42;
+///   *Log() << "Position: " << x << ", " << y;
+/// @endcode
+std::unique_ptr<std::ostringstream, void(*)(std::ostringstream *str)> Log();
+
+/// @brief Writes message text to log
+/// @param text The text message to be logged
+void Log(const char *text);
+
+/// @brief Writes two message texts to log
+/// @param text1 The first text message to be logged
+/// @param text2 The second text message to be logged
+void Log(const char *text1, const char *text2);
+
+/// @brief Writes three message texts to log
+/// @param text1 The first text message to be logged
+/// @param text2 The second text message to be logged
+/// @param text3 The third text message to be logged
+void Log(const char *text1, const char *text2, const char *text3);
+
+/// @brief Starts the logger
+/// 
+/// @note This function is called automatically by the engine before EasyMain is called.
+/// Users do not need to call this function manually.
+void StartLogger();
+
+/// @brief Stops the logger
+/// 
+/// @note This function is called automatically by the engine when the program exits.
+/// Users do not need to call this function manually.
+void StopLogger();
+
+/// @}
+
+}  // namespace arctic
+
+#endif  // ENGINE_LOG_H_

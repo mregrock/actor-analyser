@@ -1,0 +1,445 @@
+/** 
+\mainpage 
+Arctic Engine
+=============
+
+Getting started from scratch is always the biggest challenge and use of time.
+Arctic Engine API is so easy to use it makes it fun to learn, just like it ought to be.
+
+Look how easy it is to use:
+
+~~~~~{.cpp}
+    #include "engine/easy.h"
+    using namespace arctic;
+    
+    void EasyMain() {
+      while (!IsKeyDownward(kKeyEscape)) {
+        Clear();
+        DrawCircle(Vec2Si32(100, 100), 50, Rgba(255, 255, 255));
+        ShowFrame();
+      }
+    }
+~~~~~
+
+Features
+--------
+
+- Returns the power to the C++ programmer
+- Makes game development fun again
+- Easy to use
+- Quick code-build-run cycle
+
+Installation
+------------
+
+### Windows
+
+Install Visual Studio Community 2019. Make sure to select the 'Desktop development with C++' workload. Run Visual Studio and click the 'Clone or check out code' button. Enter 'https://gitlab.com/seaice/arctic.git' as the Repository location. In the solution explorer open the 'wizard' folder and doubleclick the 'wizard.sln'. Click the green triangle 'Local Windows Debugger'.
+
+A 3-minute videoguide:\n
+\htmlonly
+<iframe width="560" height="315" src="https://www.youtube.com/embed/sGG-fGHGwQs" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+\endhtmlonly
+
+### Linux
+
+Install some dependencies, clone the source code, make and run the wizard:
+~~~~~{.bash}
+    cd ~ && sudo apt-get install git cmake clang libasound2-dev libglu1-mesa-dev freeglut3-dev libgles2-mesa-dev && git clone https://gitlab.com/seaice/arctic.git && cd ~/arctic/wizard && cmake . && make -j 4 && ./wizard
+~~~~~
+
+### MacOS
+
+Install XCode. Run XCode and select 'Souce Control -> Clone' menu option. Enter 'https://gitlab.com/seaice/arctic.git' in the 'Enter repository URL' field and click 'Clone' buttons. Select 'File -> Open' menu option, open the 'arctic/wizard' directory (by default located in your Documents directory). Click the 'Product -> Run' menu option.
+
+### Building for the web browser
+
+Instructions for Linux and MacOS users on how to run an Arctic Engine game in a web browser:
+
+1. Install Emscripten following the instructions at https://emscripten.org/docs/getting_started/downloads.html
+
+  Don't forget to set the environment variables:
+  ~~~~~{.bash}
+  source ./emsdk_env.sh
+  ~~~~~
+2. Navigate to your game directory.
+3. Remove the CMake cache:
+  ~~~~~{.bash}
+  rm -f ./CMakeCache.txt
+  ~~~~~
+4. Build the project:
+  ~~~~~{.bash}
+  emcmake cmake -DCMAKE_BUILD_TYPE=Release . && make -j 8
+  ~~~~~
+5. Start the web server:
+  ~~~~~{.bash}
+  python3 ./webserver.py
+  ~~~~~
+6. Open the address http://127.0.0.1:8000/index.html in your browser
+
+Sample project types
+--------------------
+
+Project examples cover a wide range of functionalities, including basic graphic operations, game development, programming education, and event modeling. These examples serve as an excellent starting point for exploring the project's capabilities and inspire the creation of your own applications.
+
+1. Hello World
+
+  This example demonstrates basic text display on the screen. The program loads a font and displays the message "Hello world!" on the screen in a loop until the Escape key is pressed.
+  
+  Key Features:
+  - Loading and using a font.
+  - Main game loop with input handling.
+  - Rendering text on the screen.
+
+2. Tetramino game
+
+  This example implements a classic falling blocks game where players control various shaped blocks. The program manages falling pieces, processes user input to control blocks, and checks for line completion.
+
+  Key Features:
+  - Managing block positioning and rotation.
+  - Handling collisions and filled lines.
+  - Rendering the game field and the current block.
+
+3. Snake
+  
+  This example implements the classic Snake game. The program manages snake movement, food collection, and collision detection.
+
+  Key Features:
+  - Snake movement and growth mechanics.
+  - Collision detection.
+  - Score tracking.
+
+4. Coding for Kids
+  
+  This example is designed to teach the basics of programming. The program provides functions for graphic display of elements, text input, and user interaction.
+
+  Key Features:
+  - Rendering basic graphic primitives (points, lines, circles).
+  - Sound output.
+  - Handling user input and displaying text.
+  - Simple command input structure for interacting with the program.
+
+5. Turn-based strategy
+
+  This example implements a simple strategy game where players control various types of units. The game includes territory capture mechanics, player turns, and win condition checks.
+
+  Key Features:
+  - Defining types of units and their properties.
+  - Main game loop with turn processing and win condition checks.
+  - Rendering game elements on the screen.
+
+6. Discrete-event simulator
+
+  This example demonstrates the basics of discrete event simulation. The program manages time-based events, updates the model, and displays results on the screen.
+
+  Key Features:
+  - Managing simulation time and events.
+  - GUI for managing simulation parameters.
+  - Displaying the current state and progress information.
+
+Quick Tutorials
+--------------
+
+### Drawing Text
+
+Text rendering in Arctic Engine is handled by the `Font` class. Here's a simple example of how to load a font and draw text:
+
+~~~~~{.cpp}
+    #include "engine/easy.h"
+    using namespace arctic;
+    
+    Ui32 EasyMain() {
+      // Create and load a font
+      Font gameFont;
+      gameFont.Load("data/arctic_one_bmf.fnt");
+      
+      while (!IsKeyDownward(kKeyEscape)) {
+        Clear();
+        
+        // Draw text with different alignments and colors
+        // White text at the top-left
+        gameFont.Draw("Hello Arctic Engine!", 20, ScreenSize().y - 20, 
+                     kTextOriginTop, kTextAlignmentLeft, 
+                     kDrawBlendingModeColorize, kFilterNearest, 
+                     Rgba(255, 255, 255));
+        
+        // Yellow text centered on screen
+        gameFont.Draw("Centered Text", ScreenSize().x / 2, ScreenSize().y / 2, 
+                     kTextOriginCenter, kTextAlignmentCenter, 
+                     kDrawBlendingModeColorize, kFilterNearest, 
+                     Rgba(255, 255, 0));
+        
+        ShowFrame();
+      }
+      
+      return 0;
+    }
+~~~~~
+
+Key points for text rendering:
+- Use `kDrawBlendingModeColorize` for best results with colored text
+- Text origin options: `kTextOriginTop`, `kTextOriginBottom`, `kTextOriginCenter`, `kTextOriginFirstBase`
+- Text alignment options: `kTextAlignmentLeft`, `kTextAlignmentCenter`, `kTextAlignmentRight`
+
+### Processing Mouse Input
+
+Arctic Engine makes it easy to handle mouse input. Here's how to track mouse position and detect clicks:
+
+~~~~~{.cpp}
+    #include "engine/easy.h"
+    using namespace arctic;
+    
+    Ui32 EasyMain() {
+      Font gameFont;
+      gameFont.Load("data/arctic_one_bmf.fnt");
+      
+      // Create a circle parameters
+      Vec2Si32 circleCenter(300, 300);
+      Si32 circleRadius = 40;
+      bool isCirclePressed = false;
+      
+      while (!IsKeyDownward(kKeyEscape)) {
+        Clear();
+        
+        // Get current mouse position
+        Vec2Si32 mousePos = MousePos();
+        
+        // Check if mouse is over the circle using distance calculation
+        Vec2F diff = Vec2F(mousePos - circleCenter);
+        bool isMouseOverCircle = Length(diff) <= circleRadius;
+        
+        // Check for mouse click on circle
+        if (isMouseOverCircle && IsKeyDownward(kKeyMouseLeft)) {
+            isCirclePressed = true;
+        }
+        
+        // Draw circle (green if pressed, blue if mouse over, gray otherwise)
+        Rgba circleColor = isCirclePressed ?
+                          (isMouseOverCircle ? Rgba(0, 255, 128) : Rgba(128, 255, 128)) : 
+                          (isMouseOverCircle ? Rgba(0, 0, 255) : Rgba(128, 128, 128));
+        
+        DrawCircle(circleCenter, circleRadius, circleColor);
+        
+        // Draw text
+        gameFont.Draw("Click Me!", circleCenter.x, circleCenter.y,
+                     kTextOriginCenter, kTextAlignmentCenter, 
+                     kDrawBlendingModeColorize, kFilterNearest, 
+                     Rgba(255, 255, 255));
+        
+        // Display mouse coordinates
+        std::string mouseText = "Mouse: (" + std::to_string(mousePos.x) + 
+                               ", " + std::to_string(mousePos.y) + ")";
+        gameFont.Draw(mouseText.c_str(), 20, 20, kTextOriginBottom, 
+                     kTextAlignmentLeft, kDrawBlendingModeColorize, 
+                     kFilterNearest, Rgba(255, 255, 255));
+        ShowFrame();
+      }
+      
+      return 0;
+    }
+~~~~~
+
+Key mouse input functions:
+- `MousePos()`: Returns the current mouse position as Vec2Si32
+- `MouseMove()`: Returns the mouse movement since last frame
+- `MouseWheelDelta()`: Returns the mouse wheel movement
+- `IsKeyDownward(kKeyMouseLeft)`: Detects left mouse button press
+- `IsKeyDown(kKeyMouseLeft)`: Checks if left mouse button is held down
+- `IsKeyUpward(kKeyMouseLeft)`: Detects left mouse button release
+
+### Logging
+
+Arctic Engine provides a convenient streaming interface for logging. Here's how to use it:
+
+~~~~~{.cpp}
+    #include "engine/easy.h"
+    using namespace arctic;
+    
+    Ui32 EasyMain() {
+      // Simple message logging
+      *Log() << "Game started!";
+      
+      // Logging variable value
+      float score = 42.5f;
+      *Log() << "New high score achieved: " << score;
+      
+      return 0;
+    }
+~~~~~
+
+Key logging features:
+- Uses convenient streaming syntax similar to std::cout
+- Thread-safe non-blocking lightning-fast logging
+- Automatically adds newline at the end of each log message
+
+### Random Number Generation
+
+Arctic Engine provides simple functions for generating random numbers. Here's how to use them:
+
+~~~~~{.cpp}
+      // Random integers
+      Si32 randomInt = Random32(1, 100);  // Random integer between 1 and 100 (inclusive)
+      
+      // Random floating point numbers
+      float randomFloat = RandomF();      // Random float in range [0.0, 1.0)
+      float randomValue = RandomF() * 10.0f;  // Random float in range [0.0, 10.0)
+      
+      // Random signed float in range [-1.0, 1.0)
+      float randomSignedFloat = RandomSF();
+      
+      // Random direction vector
+      float angle = RandomF() * 2.0f * 3.14159f;  // Random angle in radians
+      Vec2F direction(cos(angle), sin(angle));    // Random direction vector
+      
+      // Random color
+      Rgba randomColor(Random8(), Random8(), Random8());
+      
+      // Random position on screen
+      Vec2Si32 screenSize = ScreenSize();
+      Vec2Si32 randomPosition(
+          Random32(0, screenSize.x - 1),
+          Random32(0, screenSize.y - 1));
+~~~~~
+
+Key random number generation features:
+- `Random(min, max)`: Returns a random Si64 in range [min, max]
+- `Random32(min, max)`: Returns a random Si32 in range [min, max]
+- `RandomF()`: Returns a random float in range [0.0, 1.0)
+- `RandomSF()`: Returns a random float in range [-1.0, 1.0)
+- `RandomD()`: Returns a random double in range [0.0, 1.0)
+- `RandomSD()`: Returns a random double in range [-1.0, 1.0)
+
+### Playing Sounds
+
+Arctic Engine makes it easy to load and play sound effects and music. Here's how to use the sound system:
+
+~~~~~{.cpp}
+    #include "engine/easy.h"
+    using namespace arctic;
+    
+    Ui32 EasyMain() {
+      // Load sound effects
+      Sound explosionSound;
+      explosionSound.Load("data/explosion.wav");
+      
+      Sound backgroundMusic;
+      backgroundMusic.Load("data/music.ogg");
+      
+      // Play background music
+      backgroundMusic.Play(0.5f);  // Play at 50% volume
+      
+      // Game loop
+      while (!IsKeyDownward(kKeyEscape)) {
+        Clear();
+        
+        // Play explosion sound on space key press
+        if (IsKeyDownward(kKeySpace)) {
+          explosionSound.Play(0.8f);  // Play at 80% volume
+        }
+        
+        // Restart background music if it stopped playing
+        if (!backgroundMusic.IsPlaying()) {
+          backgroundMusic.Play(0.5f);
+        }
+        
+        ShowFrame();
+      }
+      
+      return 0;
+    }
+~~~~~
+
+Key sound features:
+- Load WAV and OGG files with `Sound::Load()`
+- Play sounds with `Sound::Play()`
+- Control volume by passing a parameter to `Play(float volume)`
+- Check if a sound is playing with `SoundHandle::IsPlaying()`
+
+### Creating GUI Buttons
+
+Arctic Engine provides a simple yet powerful GUI system for creating interactive interfaces. Here's how to create and use buttons in your game:
+
+~~~~~{.cpp}
+    #include "engine/easy.h"
+    #include "engine/gui.h"
+    using namespace arctic;
+    
+    Ui32 EasyMain() {
+      ResizeScreen(1280, 720);
+      
+      // Create GUI factory
+      GuiFactory guiFactory;
+      
+      // Load a theme
+      guiFactory.theme_ = std::make_shared<GuiTheme>();
+      guiFactory.theme_->Load("data/gui_theme.xml");
+      
+      // Create a root panel to hold GUI elements
+      std::shared_ptr<Panel> gui = std::make_shared<Panel>(-1, Vec2Si32(0, 0), Vec2Si32(0, 0));
+      
+      // Create a button
+      std::shared_ptr<Button> button = guiFactory.MakeButton();
+      button->SetPos(Vec2Si32(100, 100));
+      button->SetSize(Vec2Si32(200, 50));
+      button->SetText("Click Me!");
+      
+      // Add the button to the root panel
+      gui->AddChild(button);
+      
+      // Declare a variable to use in the button click callback
+      Rgba someVariable = Rgba(0, 0, 50);
+
+      // Set button click callback
+      button->OnButtonClick = [&someVariable]() {
+        *Log() << "Button was clicked!";
+        someVariable = Rgba(Random8(), Random8(), Random8());
+      };
+      
+      // Game loop
+      while (!IsKeyDown(kKeyEscape)) {
+        Clear(someVariable);
+        
+        // Process input for GUI
+        bool isInputHandled = false;
+        for (Si32 i = 0; i < InputMessageCount(); ++i) {
+          isInputHandled = gui->ApplyInput(GetInputMessage(i), nullptr) || isInputHandled;
+        }
+        
+        // Draw GUI
+        gui->Draw(Vec2Si32(0, 0));
+        
+        ShowFrame();
+      }
+      
+      return 0;
+    }
+~~~~~
+
+Key GUI features:
+- Use `GuiFactory` to create GUI elements like buttons, panels, and text fields
+- Customize appearance with themes loaded from XML files and image atlases
+- Organize GUI elements in a hierarchy
+- Handle user interactions with callbacks
+- Process input with `ApplyInput()` method
+- Draw GUI elements with `Draw()` method
+
+Contribute
+----------
+
+- Issue Tracker: https://gitlab.com/seaice/arctic/-/issues
+- Source Code: https://gitlab.com/seaice/arctic/-/tree/master
+
+Support
+-------
+
+If you are having issues, please let us know: arcticengine@gmail.com
+
+MIT License
+-----------
+
+Licenses tell you what the software developers are scared of.\n
+BSD license is for those scared of having their name dragged through the mud.\n
+GPL is for those scared of having their code put into a proprietary piece of software.\n
+We fear not being useful to the community, so Arctic Engine is released under the MIT License.\n
+
+*/

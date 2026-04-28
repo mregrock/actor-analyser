@@ -1,0 +1,118 @@
+// The MIT License (MIT)
+//
+// Copyright (c) 2016 - 2019 Huldra
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and / or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+// FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+// IN THE SOFTWARE.
+
+#ifndef ENGINE_ARCTIC_PLATFORM_SOUND_H_
+#define ENGINE_ARCTIC_PLATFORM_SOUND_H_
+
+#include <deque>
+#include <string>
+
+#include "engine/easy_sound.h"
+#include "engine/mtq_mpmc_befsbfsp_allocator.h"
+#include "engine/sound_handle.h"
+#include "engine/transform3f.h"
+
+namespace arctic {
+
+/// @addtogroup global_advanced
+/// @{
+class SoundPlayerImpl;
+
+class AudioDeviceInfo {
+ public:
+  std::string system_name = "";
+  std::string description_for_human = "";
+  bool is_input = false;
+  bool is_output = false;
+
+  AudioDeviceInfo(const char *in_system_name,
+    const char *in_description_for_human,
+    bool in_is_input,
+    bool in_is_output)
+      : system_name(in_system_name)
+      , description_for_human(in_description_for_human)
+      , is_input(in_is_input)
+      , is_output(in_is_output) {
+  }
+};
+
+class SoundPlayer {
+ public:
+  std::deque<AudioDeviceInfo> GetDeviceList();
+  void Initialize();
+  void Initialize(const char *input_device_system_name,
+    const char *output_device_system_name);
+  void Deinitialize();
+  bool IsOk();
+  std::string GetErrorDescription();
+  ~SoundPlayer();
+ protected:
+  SoundPlayerImpl *impl = nullptr;
+};
+
+
+/// @brief Starts playback of a sound
+/// @param sound Sound to play
+/// @param volume Volume to play the sound at.
+/// 0.f is silent, 1.f is the original record level.
+SoundHandle StartSound(Sound sound, float volume);
+
+/// @brief Stops playback of a sound
+/// @param sound Sound to play
+void StopSound(Sound sound);
+void StopSound(const SoundHandle &handle);
+
+void SetSoundListenerLocation(Transform3F location);
+void SetSoundSourcePosition(Sound sound, Vec3F position);
+void SetSoundSourcePosition(const SoundHandle &handle, Vec3F position);
+SoundHandle StartSoundAtPosition(Sound sound, float volume, Vec3F position);
+
+/// @}
+/// @addtogroup global_sound
+/// @{
+
+/// @brief Sets the master volume level
+/// @param volume Volume to set.
+void SetMasterVolume(float volume);
+
+/// @brief Gets the master volume level
+/// @return The master volume level
+float GetMasterVolume();
+
+/// @brief Plays asynchronously the note specified for the duration specified.
+/// @param duration_seconds Sound duration in seconds.
+/// @param note Index of the note to play, index of C4 is 0, index of C#4 is 1, etc.
+/// @return The Sound being played.
+Sound BeepAsync(float duration_seconds, Si32 note);
+
+/// @brief Plays the note specified for the duration specified.
+/// @param duration_seconds Sound duration in seconds.
+/// @param note Index of the note to play, index of C4 is 0, index of C#4 is 1, etc.
+void Beep(float duration_seconds, Si32 note);
+
+extern template class MpmcBestEffortFixedSizeBufferFixedSizePool<8, 4080>;
+
+/// @}
+
+}  // namespace arctic
+
+#endif  // ENGINE_ARCTIC_PLATFORM_SOUND_H_
