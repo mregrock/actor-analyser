@@ -194,6 +194,15 @@ bool IsActive() {
   return s_active;
 }
 
+void Reset() {
+  s_query.clear();
+  s_status = "Ctrl+F actor search";
+  s_matches.clear();
+  s_current = 0;
+  s_active = false;
+  s_dirty = true;
+}
+
 void HandleInput() {
   if (IsControlDown() && IsKeyDownward(kKeyF)) {
     s_active = true;

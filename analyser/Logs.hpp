@@ -981,6 +981,7 @@ public:
     logMessages_.clear();
     actorTypeToActorId_.clear();
     actorIdToActorType_.clear();
+    actorTypesMap_.clear();
 
     newDieLogLines_.clear();
     lifeTime_.clear();

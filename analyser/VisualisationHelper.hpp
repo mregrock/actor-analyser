@@ -105,6 +105,17 @@ public:
   static bool IsTraceMode() {
     return isTraceMode_;
   }
+
+  static void Reset() {
+    selectedMessages_.clear();
+    selectedMessageColor_.clear();
+    messageColor_.clear();
+    birthActors_.clear();
+    onlyBirth_ = false;
+    normalisationCoef_ = 0;
+    lastSelectedMessageId_ = 0;
+    isTraceMode_ = false;
+  }
   
 private:
   

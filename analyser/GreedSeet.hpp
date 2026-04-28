@@ -34,6 +34,7 @@ public:
     tables_.clear();
     coords_.clear();
     coordedId_.clear();
+    actorNameSeet_.clear();
   }
   
 

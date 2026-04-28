@@ -39,6 +39,7 @@
 #include <fstream>
 #include <set>
 #include <algorithm>
+#include <exception>
 #include "globals.h"
 
 using namespace arctic;
@@ -75,42 +76,31 @@ TimeLine g_time_line;
 
 std::vector<std::string> g_layer_names;
 
-void EasyMain() {
-  ResizeScreen(1920, 1080);
-  g_large_font.Load("data/arctic_one_bmf.fnt");
-  g_font.LoadLetterBits(g_tiny_font_letters, 8, 8);
+namespace {
 
-  // Logs::ReadLogs("data/actors_trace_single.bin");
-  // Logs::ReadLogs("data/actors_trace_single_pointer.bin");
-  Logs::ReadLogs("data/actors_trace_single_v4.bin");
-  // // Logs::ReadLogs("data/actors_trace.bin");
-  // Logs::ReadLogs("data/storage_start_err.log");
-  VisualisationHelper::RecalcMessagesColor();
+constexpr const char* kDefaultTraceFile = "data/actors_trace_single_v4.bin";
 
-  FilterPanel::Init();
-  Tooltip::Init();
-  Highlight::Init();
+std::string g_current_trace_file;
+std::string g_trace_status;
 
-  g_pgseet = new GreedSeet(std::pair(ScreenSize().x, ScreenSize().y),
-                  std::max(static_cast<ActorIdx>(1), 9000 / Logs::GetMaxActorId()));
-  g_pgseet->PrepareTables();
+bool IsShortcutDown() {
+  return IsKeyDown(kKeyControl) || IsKeyDown(kKeyLeftControl) || IsKeyDown(kKeyRightControl);
+}
 
-  g_camera.offset_ = ScreenSize()/2;
-  g_camera.scaleFactor_ = 1.0;
+std::string FileNameOnly(const std::string& path) {
+  size_t pos = path.find_last_of("/\\");
+  if (pos == std::string::npos) return path;
+  return path.substr(pos + 1);
+}
 
-  Mouse mouse;
-  PlayerPausePlay ppp;
-  ppp.SetMouse(&mouse);
+bool FileExists(const std::string& path) {
+  std::ifstream file(path, std::ios::binary);
+  return file.good();
+}
 
-  g_time_line.SetMouse(&mouse);
-  g_time_line.SetMaxTime(Logs::GetMaxTime());
-
-
-  ppp.SetAction([](){
-    g_is_pause = !g_is_pause;
-  });
-
+void FillActorRecords() {
   g_actors.resize(Logs::GetMaxActorId() + 1);
+  const std::map<ActorIdx, std::string_view>& idToType = Logs::GetActorIdToActorType();
   for (ActorIdx i = 0; i <= Logs::GetMaxActorId(); ++i) {
     ActorRec &a = g_actors[i];
     a.id_ = i;
@@ -120,13 +110,15 @@ void EasyMain() {
       a.visible_ = Logs::IsAlife(i, g_time_line.GetTime(), g_min_actor_display_duration);
       a.active_ = Logs::CheckActorActivity(i, g_time_line.GetTime());
       a.offset_ = g_pgseet->GetCoord(i);
-      const std::map<ActorIdx, std::string_view>& idToType = Logs::GetActorIdToActorType();
-      a.text = static_cast<std::string>(idToType.at(a.id_));
+      auto typeIt = idToType.find(a.id_);
+      a.text = (typeIt != idToType.end()) ? static_cast<std::string>(typeIt->second) : "UNKNOWN";
       Vec2Si32 typeBlockSize = g_font.EvaluateSize(a.text.c_str(), false);
       a.visual_size = (Vec2F(typeBlockSize) + Vec2F(2, 2));
     }
   }
+}
 
+void FillMessageRecords() {
   g_messages.resize(Logs::GetLogMessages().size());
   for (size_t i = 0; i < Logs::GetLogMessages().size(); ++i) {
     const Logs::LogMessage &event = Logs::GetLogMessages()[i];
@@ -147,56 +139,133 @@ void EasyMain() {
       arrow.to = m.to;
     }
   }
+}
 
-  {
-    std::ofstream dbg("/tmp/actor_debug_log.txt", std::ios::app);
-    dbg << std::endl << "=== MAIN INIT DEBUG ===" << std::endl;
-    dbg << "g_messages.size: " << g_messages.size() << std::endl;
-    dbg << "g_actors.size: " << g_actors.size() << std::endl;
-    dbg << "g_arrows.size: " << g_arrows.size() << std::endl;
-    dbg << "maxTime: " << g_time_line.maxTime_ << std::endl;
-    dbg << "coordedId count: " << g_pgseet->coordedId_.size() << std::endl;
+void WriteTraceLoadDebug() {
+  std::ofstream dbg("/tmp/actor_debug_log.txt", std::ios::app);
+  dbg << std::endl << "=== TRACE LOAD DEBUG ===" << std::endl;
+  dbg << "file: " << g_current_trace_file << std::endl;
+  dbg << "g_messages.size: " << g_messages.size() << std::endl;
+  dbg << "g_actors.size: " << g_actors.size() << std::endl;
+  dbg << "g_arrows.size: " << g_arrows.size() << std::endl;
+  dbg << "maxTime: " << g_time_line.maxTime_ << std::endl;
+  dbg << "coordedId count: " << g_pgseet->coordedId_.size() << std::endl;
 
-    {
-      size_t withBirth = 0;
-      for (ActorIdx id : g_pgseet->coordedId_) {
-        if (Logs::lifeTime_.count(id) && Logs::lifeTime_.at(id).first > 0) {
-          withBirth++;
-        }
-      }
-      dbg << "coordedId actors with birth > 0: " << withBirth << std::endl;
-      dbg << "coordedId actors with birth = 0 (always visible): "
-          << (g_pgseet->coordedId_.size() - withBirth) << std::endl;
-      dbg << "Sample coordedId actors with birth > 0:" << std::endl;
-      int cnt = 0;
-      for (ActorIdx id : g_pgseet->coordedId_) {
-        if (Logs::lifeTime_.count(id) && Logs::lifeTime_.at(id).first > 0 && cnt < 10) {
-          dbg << "  actor " << id << " birth=" << Logs::lifeTime_.at(id).first
-              << " death=" << Logs::lifeTime_.at(id).second << std::endl;
-          cnt++;
-        }
-      }
+  size_t msgsWithCoord = 0;
+  for (size_t i = 0; i < g_messages.size(); ++i) {
+    if (g_pgseet->HaveCoord(g_messages[i].from) && g_pgseet->HaveCoord(g_messages[i].to)) {
+      msgsWithCoord++;
     }
-
-    size_t msgsWithCoord = 0;
-    for (size_t i = 0; i < g_messages.size(); ++i) {
-      if (g_pgseet->HaveCoord(g_messages[i].from) && g_pgseet->HaveCoord(g_messages[i].to)) {
-        msgsWithCoord++;
-      }
-    }
-    dbg << "Messages where BOTH actors have coords: " << msgsWithCoord << std::endl;
-
-    if (!g_messages.empty()) {
-      dbg << "First 5 messages:" << std::endl;
-      for (size_t i = 0; i < std::min((size_t)5, g_messages.size()); ++i) {
-        auto& m = g_messages[i];
-        dbg << "  [" << i << "] from=" << m.from << "(coord=" << g_pgseet->HaveCoord(m.from) << ")"
-            << " to=" << m.to << "(coord=" << g_pgseet->HaveCoord(m.to) << ")"
-            << " start=" << m.start << " end=" << m.end << std::endl;
-      }
-    }
-    dbg.close();
   }
+  dbg << "Messages where BOTH actors have coords: " << msgsWithCoord << std::endl;
+}
+
+bool TryLoadTraceFile(const std::string& path, std::string* error) {
+  if (!FileExists(path)) {
+    if (error) *error = "file not found";
+    return false;
+  }
+
+  try {
+    Logs::Clear();
+    VisualisationHelper::Reset();
+    ActorSearch::Reset();
+    g_layer_names.clear();
+    g_actors.clear();
+    g_messages.clear();
+    g_arrows.clear();
+    g_mouse_nearest_message_idx = -1;
+    g_mouse_nearest_actor_idx = -1;
+    g_update_frame = 1;
+    if (g_pgseet) {
+      delete g_pgseet;
+      g_pgseet = nullptr;
+    }
+
+    Logs::ReadLogs(path);
+    VisualisationHelper::RecalcMessagesColor();
+    FilterPanel::Init();
+    Tooltip::Init();
+    Highlight::Init();
+
+    ActorIdx maxActorId = std::max(static_cast<ActorIdx>(1), Logs::GetMaxActorId());
+    g_pgseet = new GreedSeet(std::pair(ScreenSize().x, ScreenSize().y),
+                    std::max(static_cast<ActorIdx>(1), 9000 / maxActorId));
+    g_pgseet->PrepareTables();
+
+    g_time_line.d_time_ = 0.0;
+    g_time_line.time_ = 0;
+    g_time_line.SetMaxTime(Logs::GetMaxTime());
+    g_camera.offset_ = ScreenSize()/2;
+    g_camera.scaleFactor_ = 1.0;
+
+    FillActorRecords();
+    FillMessageRecords();
+
+    g_current_trace_file = path;
+    g_trace_status = "Trace: " + FileNameOnly(path) + "  |  Cmd+O open";
+    WriteTraceLoadDebug();
+    return true;
+  } catch (const std::exception& e) {
+    if (error) *error = e.what();
+  } catch (...) {
+    if (error) *error = "unknown error";
+  }
+  return false;
+}
+
+bool LoadTraceFile(const std::string& path) {
+  std::string previous = g_current_trace_file;
+  std::string error;
+  if (TryLoadTraceFile(path, &error)) {
+    return true;
+  }
+
+  if (!previous.empty() && previous != path) {
+    std::string restoreError;
+    TryLoadTraceFile(previous, &restoreError);
+  }
+  g_trace_status = "Failed to open: " + FileNameOnly(path) + " (" + error + ")";
+  return false;
+}
+
+void HandleOpenTraceShortcut() {
+  if (!IsShortcutDown() || !IsKeyDownward(kKeyO)) return;
+
+  std::string path = OpenFileDialog("Open actor trace", "bin");
+  if (path.empty()) return;
+
+  LoadTraceFile(path);
+  ClearKeyStateTransitions();
+}
+
+void DrawTraceStatus() {
+  if (g_trace_status.empty()) return;
+  g_font.Draw(GetEngine()->GetBackbuffer(), g_trace_status.c_str(), 10, ScreenSize().y - 10,
+              kTextOriginTop, kTextAlignmentLeft,
+              kDrawBlendingModeColorize, kFilterNearest,
+              Rgba(210, 230, 255));
+}
+
+}  // namespace
+
+void EasyMain() {
+  ResizeScreen(1920, 1080);
+  g_large_font.Load("data/arctic_one_bmf.fnt");
+  g_font.LoadLetterBits(g_tiny_font_letters, 8, 8);
+
+  if (!LoadTraceFile(kDefaultTraceFile)) {
+    return;
+  }
+
+  Mouse mouse;
+  PlayerPausePlay ppp;
+  ppp.SetMouse(&mouse);
+
+  g_time_line.SetMouse(&mouse);
+  ppp.SetAction([](){
+    g_is_pause = !g_is_pause;
+  });
 
 
   while (true) {
@@ -204,6 +273,7 @@ void EasyMain() {
       break;
     }
 
+    HandleOpenTraceShortcut();
     Clear(Rgba(32, 32, 32));
 
     if (VisualisationHelper::IsTraceMode()) {
@@ -348,16 +418,19 @@ void EasyMain() {
       }
       FilterPanel::Draw();
       ActorSearch::Draw();
+      DrawTraceStatus();
 
       VisualisationTime curTime = g_time_line.GetTime();
-      std::string time = std::to_string(curTime / 1'000'000) + '.' +
-      std::to_string(curTime % 1'000'000) + "s";
-      Vec2Si32 timeSize = g_large_font.EvaluateSize(time.c_str(), false);
-      g_large_font.Draw(mainFrame.GetDrawSprite(), time.c_str(),
-                  mainFrame.GetDrawSprite().Size().x - timeSize.x, mainFrame.GetDrawSprite().Size().y - timeSize.y,
-                  kTextOriginTop,  kTextAlignmentLeft,
-                  kDrawBlendingModeColorize,  kFilterNearest,
-                  Rgba(255, 0, 0));
+      if (DebugHud::IsVisible()) {
+        std::string time = std::to_string(curTime / 1'000'000) + '.' +
+        std::to_string(curTime % 1'000'000) + "s";
+        Vec2Si32 timeSize = g_large_font.EvaluateSize(time.c_str(), false);
+        g_large_font.Draw(mainFrame.GetDrawSprite(), time.c_str(),
+                    mainFrame.GetDrawSprite().Size().x - timeSize.x, mainFrame.GetDrawSprite().Size().y - timeSize.y,
+                    kTextOriginTop,  kTextAlignmentLeft,
+                    kDrawBlendingModeColorize,  kFilterNearest,
+                    Rgba(255, 0, 0));
+      }
 
       if (g_mouse_nearest_actor_idx >= 0 && g_distance_sq_to_nearest_actor == 0.0) {
         Tooltip::DrawActorTooltip(g_mouse_nearest_actor_idx, curTime);
